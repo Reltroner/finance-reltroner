@@ -1,5 +1,5 @@
 <?php
-
+// http://finance.reltroner.local config/services.php
 return [
 
     /*
@@ -33,6 +33,11 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    'modules' => [
+    'gateway' => env('GATEWAY_SERVICE', 'http://gateway.reltroner.local:8000'),
+    'hrm' => env('HRM_SERVICE', 'http://hrm.reltroner.local:80'),
     ],
 
 ];
