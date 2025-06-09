@@ -1,25 +1,42 @@
 <?php
-// app/Models/Transaction.php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Transaction extends Model
 {
+    use HasFactory, SoftDeletes;
+
     protected $fillable = [
-        'transaction_code',
-        'employee_id',
-        'type',
-        'category',
-        'amount',
-        'status',
-        'transaction_date',
+        'reference', 'description', 'date', 'currency_id', 
+        'total_debit', 'total_credit', 'created_by'
     ];
 
-    // Optional: if you want to associate with HRM API later
-    public function employee()
+    public function currency()
     {
-        // Placeholder if you create local employee model in future
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(Currency::class);
+    }
+
+    public function details()
+    {
+        return $this->hasMany(TransactionDetail::class);
+    }
+
+    public function payments()
+    {
+        return $this->hasMany(Payment::class);
+    }
+
+    public function taxApplications()
+    {
+        return $this->hasMany(TaxApplication::class);
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(Attachment::class);
     }
 }

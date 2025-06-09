@@ -1,5 +1,5 @@
 <?php
-// app/database/migrations/2025_06_08_073919_create_budget_categories_table.php
+// database/migrations/2025_06_09_142453_create_vendors_table.php
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -11,12 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('budget_categories', function (Blueprint $table) {
+        Schema::create('vendors', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description')->nullable();
-            $table->enum('type', ['income', 'expense']);
+            $table->text('address')->nullable();
+            $table->string('phone', 20)->nullable();
+            $table->string('email', 100)->nullable();
+            $table->string('tax_number', 30)->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
@@ -25,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('budget_categories');
+        Schema::dropIfExists('vendors');
     }
 };

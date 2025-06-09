@@ -1,65 +1,69 @@
 <?php
+// app/Http/Controllers/BudgetCategoryController.php
+namespace App\Http\Controllers;
 
-namespace App\Http\Controllers\Finance;
-
-use App\Http\Controllers\Controller;
+use App\Models\BudgetCategory;
 use Illuminate\Http\Request;
 
 class BudgetCategoryController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of budget categories.
      */
     public function index()
     {
-        //
+        return response()->json(BudgetCategory::all());
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
+     * Store a newly created budget category.
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name'        => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'type'        => 'required|in:income,expense',
+        ]);
+
+        $category = BudgetCategory::create($validated);
+        return response()->json($category, 201);
     }
 
     /**
-     * Display the specified resource.
+     * Display the specified budget category.
      */
-    public function show(string $id)
+    public function show($id)
     {
-        //
+        $category = BudgetCategory::findOrFail($id);
+        return response()->json($category);
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Update the specified budget category.
      */
-    public function edit(string $id)
+    public function update(Request $request, $id)
     {
-        //
+        $category = BudgetCategory::findOrFail($id);
+
+        $validated = $request->validate([
+            'name'        => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string',
+            'type'        => 'sometimes|required|in:income,expense',
+        ]);
+
+        $category->update($validated);
+        return response()->json($category);
     }
 
     /**
-     * Update the specified resource in storage.
+     * Remove the specified budget category.
      */
-    public function update(Request $request, string $id)
+    public function destroy($id)
     {
-        //
-    }
+        $category = BudgetCategory::findOrFail($id);
+        $category->delete();
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
+        return response()->json(['message' => 'Budget category deleted successfully.']);
     }
 }
