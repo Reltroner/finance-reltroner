@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('file_path');
             $table->string('file_name');
             $table->timestamp('uploaded_at')->nullable();
+            $table->timestamps();
             $table->softDeletes();
         });
     }

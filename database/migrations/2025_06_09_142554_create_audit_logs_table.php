@@ -20,6 +20,7 @@ return new class extends Migration
             $table->json('data_new')->nullable();
             $table->unsignedBigInteger('changed_by')->nullable();
             $table->timestamp('changed_at')->nullable();
+            $table->timestamps();
             $table->softDeletes();
         });
     }
