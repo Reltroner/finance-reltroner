@@ -1,5 +1,5 @@
 <?php
-
+// app/Http/Controllers/Finance/AccountController.php
 namespace App\Http\Controllers\Finance;
 
 use App\Http\Controllers\Controller;
