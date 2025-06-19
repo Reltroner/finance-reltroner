@@ -1,74 +1,82 @@
 <?php
-
+// app/Http/Controllers/AccountController.php
 namespace App\Http\Controllers;
 
 use App\Models\Account;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class AccountController extends Controller
 {
     /**
-     * Display a listing of the accounts.
+     * Display a listing of accounts.
      */
-    public function index()
+    public function index(): JsonResponse
     {
-        return response()->json(Account::all());
+        $accounts = Account::with('parent', 'children', 'budgets')->paginate(20);
+        return response()->json($accounts);
     }
 
     /**
      * Store a newly created account in storage.
      */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'account_name'   => 'required|string|max:255',
-            'account_number' => 'nullable|string|max:255',
-            'balance'        => 'nullable|numeric|min:0',
-            'currency'       => 'nullable|string|max:10',
+            'code'      => 'required|string|unique:accounts,code',
+            'name'      => 'required|string',
+            'type'      => 'required|in:asset,liability,equity,income,expense',
+            'parent_id' => 'nullable|exists:accounts,id',
+            'is_active' => 'boolean',
         ]);
 
         $account = Account::create($validated);
 
-        return response()->json($account, 201);
+        return response()->json([
+            'message' => 'Account created successfully!',
+            'data'    => $account,
+        ], 201);
     }
 
     /**
      * Display the specified account.
      */
-    public function show($id)
+    public function show(Account $account): JsonResponse
     {
-        $account = Account::findOrFail($id);
-
+        $account->load('parent', 'children', 'budgets');
         return response()->json($account);
     }
 
     /**
      * Update the specified account in storage.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, Account $account): JsonResponse
     {
-        $account = Account::findOrFail($id);
-
         $validated = $request->validate([
-            'account_name'   => 'sometimes|required|string|max:255',
-            'account_number' => 'nullable|string|max:255',
-            'balance'        => 'nullable|numeric|min:0',
-            'currency'       => 'nullable|string|max:10',
+            'code'      => 'sometimes|required|string|unique:accounts,code,' . $account->id,
+            'name'      => 'sometimes|required|string',
+            'type'      => 'sometimes|required|in:asset,liability,equity,income,expense',
+            'parent_id' => 'nullable|exists:accounts,id',
+            'is_active' => 'boolean',
         ]);
 
         $account->update($validated);
 
-        return response()->json($account);
+        return response()->json([
+            'message' => 'Account updated successfully!',
+            'data'    => $account,
+        ]);
     }
 
     /**
      * Remove the specified account from storage (soft delete).
      */
-    public function destroy($id)
+    public function destroy(Account $account): JsonResponse
     {
-        $account = Account::findOrFail($id);
         $account->delete();
 
-        return response()->json(['message' => 'Account deleted.']);
+        return response()->json([
+            'message' => 'Account deleted successfully!'
+        ]);
     }
 }

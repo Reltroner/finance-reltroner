@@ -11,4 +11,3 @@ Route::middleware('api')->get('/ping', function () {
 
 Route::get('/employees', [EmployeeController::class, 'index']);
 
-Route::get('/finance/dashboard', [DashboardFinanceController::class, 'financeSummary'])->name('dashboard.index');

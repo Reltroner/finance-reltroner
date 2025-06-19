@@ -13,7 +13,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        return view('finance.dashboard.index', [
+        return view('dashboard.index', [
             'transactions' => Transaction::count(),
             'accounts' => Account::count(),
             'invoices' => Invoice::count(),

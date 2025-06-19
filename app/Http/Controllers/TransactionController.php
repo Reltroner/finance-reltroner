@@ -1,91 +1,106 @@
 <?php
+// app/Http/Controllers/TransactionController.php
+namespace App\Http\Controllers;
 
-namespace App\Http\Controllers\Finance;
-
-use App\Http\Controllers\Controller;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Http\JsonResponse;
 
 class TransactionController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of transactions, with optional filtering.
      */
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-        $transactions = Transaction::latest()->paginate(10);
-        return view('finance.transactions.index', compact('transactions'));
+        $query = Transaction::with(['currency', 'details', 'attachments', 'taxApplications']);
+
+        if ($request->filled('currency_id')) {
+            $query->where('currency_id', $request->input('currency_id'));
+        }
+        if ($request->filled('reference')) {
+            $query->where('reference', 'like', '%' . $request->input('reference') . '%');
+        }
+        if ($request->filled('date')) {
+            $query->whereDate('date', $request->input('date'));
+        }
+        if ($request->filled('min_total')) {
+            $query->where('total_debit', '>=', $request->input('min_total'));
+        }
+        if ($request->filled('max_total')) {
+            $query->where('total_debit', '<=', $request->input('max_total'));
+        }
+
+        $transactions = $query->orderByDesc('date')->paginate(20);
+
+        return response()->json($transactions);
     }
 
     /**
-     * Show the form for creating a new resource.
+     * Store a newly created transaction.
      */
-    public function create()
-    {
-        return view('finance.transactions.create');
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'employee_id' => 'required|integer',
-            'type' => 'required|in:income,expense',
-            'category' => 'required|string',
-            'amount' => 'required|numeric',
-            'transaction_date' => 'required|date',
+            'reference'    => 'nullable|string|max:255|unique:transactions,reference',
+            'description'  => 'nullable|string',
+            'date'         => 'required|date',
+            'currency_id'  => 'required|exists:currencies,id',
+            'total_debit'  => 'required|numeric|min:0',
+            'total_credit' => 'required|numeric|min:0',
+            'created_by'   => 'nullable|integer',
         ]);
 
-        $validated['transaction_code'] = strtoupper(Str::random(10));
-        $validated['status'] = 'completed';
+        $transaction = Transaction::create($validated);
 
-        Transaction::create($validated);
-
-        return redirect()->route('transactions.index')->with('success', 'Transaction created.');
+        return response()->json([
+            'message' => 'Transaction created successfully!',
+            'data'    => $transaction->load(['currency']),
+        ], 201);
     }
 
     /**
-     * Display the specified resource.
+     * Display the specified transaction.
      */
-    public function show(Transaction $transaction)
+    public function show(Transaction $transaction): JsonResponse
     {
-        return view('finance.transactions.show', compact('transaction'));
+        $transaction->load(['currency', 'details', 'attachments', 'taxApplications']);
+        return response()->json($transaction);
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Update the specified transaction.
      */
-    public function edit(Transaction $transaction)
-    {
-        return view('finance.transactions.edit', compact('transaction'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Transaction $transaction)
+    public function update(Request $request, Transaction $transaction): JsonResponse
     {
         $validated = $request->validate([
-            'type' => 'required|in:income,expense',
-            'category' => 'required|string',
-            'amount' => 'required|numeric',
-            'transaction_date' => 'required|date',
+            'reference'    => 'sometimes|nullable|string|max:255|unique:transactions,reference,' . $transaction->id,
+            'description'  => 'nullable|string',
+            'date'         => 'sometimes|required|date',
+            'currency_id'  => 'sometimes|required|exists:currencies,id',
+            'total_debit'  => 'sometimes|required|numeric|min:0',
+            'total_credit' => 'sometimes|required|numeric|min:0',
+            'created_by'   => 'nullable|integer',
         ]);
 
         $transaction->update($validated);
 
-        return redirect()->route('transactions.index')->with('success', 'Transaction updated.');
+        return response()->json([
+            'message' => 'Transaction updated successfully!',
+            'data'    => $transaction->load(['currency']),
+        ]);
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove the specified transaction from storage (soft delete).
      */
-    public function destroy(Transaction $transaction)
+    public function destroy(Transaction $transaction): JsonResponse
     {
         $transaction->delete();
-        return redirect()->route('transactions.index')->with('success', 'Transaction deleted.');
+
+        return response()->json([
+            'message' => 'Transaction deleted successfully!',
+        ]);
     }
 }
+// End of app/Http/Controllers/TransactionController.php
