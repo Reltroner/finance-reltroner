@@ -80,3 +80,5 @@ class AccountController extends Controller
         ]);
     }
 }
+
+// end of app/Http/Controllers/AccountController.php

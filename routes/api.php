@@ -3,7 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\EmployeeController;
-use App\Http\Controllers\DashboardFinanceController;
+use App\Http\Controllers\DashboardController;
 
 Route::middleware('api')->get('/ping', function () {
     return response()->json(['status' => 'ok']);

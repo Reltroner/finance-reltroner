@@ -1,5 +1,5 @@
 <?php
-
+// app/Database/Factories/AccountFactory.php
 namespace Database\Factories;
 
 use App\Models\Account;

@@ -245,7 +245,7 @@
     });
 
     // Example fetch update — replace with actual endpoint later
-    fetch('/finance/dashboard')
+    fetch('/dashboard')
     .then(res => res.json())
     .then(data => {
         balanceChart.data.datasets[0].data = [

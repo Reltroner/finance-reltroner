@@ -5,7 +5,7 @@
         <i class="bi bi-justify fs-3"></i>
     </a>
 </header>
-{{-- resources/views/finance/dashboard/index.blade.php --}}
+{{-- resources/views/dashboard/index.blade.php --}}
 <div class="page-heading">
     <h3>Finance Dashboard</h3>
 </div> 

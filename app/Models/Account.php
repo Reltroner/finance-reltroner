@@ -1,5 +1,5 @@
 <?php
-
+// app/Models/Account.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -32,3 +32,5 @@ class Account extends Model
         return $this->hasMany(Budget::class);
     }
 }
+
+// end of app/Models/Account.php
