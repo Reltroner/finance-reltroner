@@ -34,7 +34,7 @@
                     <div class="row">
                         <div class="col-5 d-flex justify-content-start">
                             <div class="stats-icon blue mb-2">
-                                <i class="icon dripicons dripicons-bank"></i>
+                                <i class="bi-bank"></i>
                             </div>
                         </div>
                         <div class="col-7">

@@ -1,85 +1,154 @@
 {{-- resources/views/accounts/index.blade.php --}}
 
-@extends('layouts.app')
-
-@section('title', 'Accounts List')
-
+@extends('layouts.dashboard')
 @section('content')
-<div class="container mx-auto px-4 py-6">
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold">Accounts</h1>
-        <a href="{{ route('accounts.create') }}"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow transition">
-            + New Account
-        </a>
-    </div>
+<header class="mb-3">
+    <a href="#" class="burger-btn d-block d-xl-none">
+        <i class="bi bi-justify fs-3"></i>
+    </a>
+</header>
 
-    @if(session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded mb-4">
-            {{ session('success') }}
+@if (session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>Success:</strong> {{ session('success') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+@if (session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Error:</strong> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
+<div class="page-heading">
+    <div class="page-title">
+        <div class="row">
+            <div class="col-12 col-md-6 order-md-1 order-last">
+                <h3>Accounts</h3>
+                <p class="text-subtitle text-muted">For account management</p>
+            </div>
+            <div class="col-12 col-md-6 order-md-2 order-first">
+                <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Accounts</li>
+                    </ol>
+                </nav>
+            </div>
         </div>
-    @endif
-
-    <div class="overflow-x-auto">
-        <table class="min-w-full border rounded-xl shadow bg-white">
-            <thead>
-                <tr class="bg-gray-100">
-                    <th class="py-2 px-4 text-left">Code</th>
-                    <th class="py-2 px-4 text-left">Name</th>
-                    <th class="py-2 px-4 text-left">Type</th>
-                    <th class="py-2 px-4 text-left">Parent</th>
-                    <th class="py-2 px-4 text-center">Active</th>
-                    <th class="py-2 px-4 text-center">Budgets</th>
-                    <th class="py-2 px-4 text-center">Children</th>
-                    <th class="py-2 px-4 text-center">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($accounts as $account)
-                    <tr class="border-b hover:bg-gray-50">
-                        <td class="py-2 px-4 font-mono">{{ $account->code }}</td>
-                        <td class="py-2 px-4">{{ $account->name }}</td>
-                        <td class="py-2 px-4 capitalize">{{ $account->type }}</td>
-                        <td class="py-2 px-4">
-                            {{ $account->parent ? $account->parent->name : '-' }}
-                        </td>
-                        <td class="py-2 px-4 text-center">
-                            @if($account->is_active)
-                                <span class="inline-block w-3 h-3 bg-green-500 rounded-full"></span>
-                            @else
-                                <span class="inline-block w-3 h-3 bg-red-400 rounded-full"></span>
-                            @endif
-                        </td>
-                        <td class="py-2 px-4 text-center">
-                            {{ $account->budgets->count() }}
-                        </td>
-                        <td class="py-2 px-4 text-center">
-                            {{ $account->children->count() }}
-                        </td>
-                        <td class="py-2 px-4 text-center">
-                            <a href="{{ route('accounts.show', $account) }}"
-                               class="text-blue-600 hover:underline">View</a>
-                            <a href="{{ route('accounts.edit', $account) }}"
-                               class="text-yellow-600 hover:underline ml-2">Edit</a>
-                            <form action="{{ route('accounts.destroy', $account) }}" method="POST" class="inline">
-                                @csrf @method('DELETE')
-                                <button type="submit" onclick="return confirm('Delete this account?')"
-                                    class="text-red-600 hover:underline ml-2">Delete</button>
-                            </form>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="8" class="text-center py-4 text-gray-500">No accounts found.</td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
     </div>
 
-    {{-- Pagination --}}
-    <div class="mt-4">
-        {{ $accounts->links() }}
-    </div>
+    <section class="section">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Account List</h5>
+                <a href="{{ route('accounts.create') }}" class="btn btn-primary btn-md">New Account</a>
+            </div>
+            <div class="card-body">
+                <!-- Desktop Table -->
+                <div class="d-none d-md-block">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="table1">
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Parent</th>
+                                    <th>Status</th>
+                                    <th>Budgets</th>
+                                    <th>Children</th>
+                                    <th>Options</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($accounts as $account)
+                                    <tr>
+                                        <td><span class="font-monospace">{{ $account->code }}</span></td>
+                                        <td>{{ $account->name }}</td>
+                                        <td>{{ ucfirst($account->type) }}</td>
+                                        <td>{{ $account->parent ? $account->parent->name : '-' }}</td>
+                                        <td>
+                                            @if ($account->is_active)
+                                                <span class="badge bg-success">Active</span>
+                                            @else
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            {{ $account->budgets->count() }}
+                                        </td>
+                                        <td>
+                                            {{ $account->children->count() }}
+                                        </td>
+                                        <td>
+                                            <a href="{{ route('accounts.show', $account->id) }}" class="btn btn-info btn-sm mb-1">View</a>
+                                            <a href="{{ route('accounts.edit', $account->id) }}" class="btn btn-primary btn-sm mb-1">Edit</a>
+                                            <form action="{{ route('accounts.destroy', $account->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure to delete this account?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button class="btn btn-danger btn-sm mb-1">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        {{-- Pagination --}}
+                        <div class="mt-3">
+                            {{ $accounts->links() }}
+                        </div>
+                    </div>
+                </div>
+                <!-- Mobile Card Stack -->
+                <div class="d-block d-md-none">
+                    @foreach ($accounts as $account)
+                        <div class="account-list-card mb-3 p-3 border rounded bg-white shadow-sm">
+                            <div class="fw-bold mb-1">
+                                <span class="font-monospace">{{ $account->code }}</span> - {{ $account->name }}
+                            </div>
+                            <div style="font-size:15px;">
+                                Type: <strong>{{ ucfirst($account->type) }}</strong><br>
+                                Parent: <strong>{{ $account->parent ? $account->parent->name : '-' }}</strong><br>
+                                Status:
+                                @if ($account->is_active)
+                                    <span class="badge bg-success">Active</span>
+                                @else
+                                    <span class="badge bg-secondary">Inactive</span>
+                                @endif<br>
+                                Budgets: <strong>{{ $account->budgets->count() }}</strong><br>
+                                Children: <strong>{{ $account->children->count() }}</strong>
+                            </div>
+                            <div class="mt-2">
+                                <a href="{{ route('accounts.show', $account->id) }}" class="btn btn-info btn-sm mb-1">View</a>
+                                <a href="{{ route('accounts.edit', $account->id) }}" class="btn btn-primary btn-sm mb-1">Edit</a>
+                                <form action="{{ route('accounts.destroy', $account->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure to delete this account?');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button class="btn btn-danger btn-sm mb-1">Delete</button>
+                                </form>
+                            </div>
+                        </div>
+                    @endforeach
+                    <div class="mt-3">
+                        {{ $accounts->links() }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 </div>
+<style>
+@media (max-width: 576px) {
+    .account-list-card {
+        border: 1px solid #eee;
+        border-radius: 13px;
+        background: #fff;
+        margin-bottom: 16px;
+        box-shadow: 0 1px 8px 0 rgba(180,200,230,0.07);
+    }
+}
+</style>
 @endsection
