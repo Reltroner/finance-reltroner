@@ -117,6 +117,12 @@
                     <span>Accounts</span>
                 </a>
             </li>
+            <li class="sidebar-item {{ request()->is('attachments*') ? 'active' : '' }}">
+                <a href="{{ route('attachments.index') }}" class="sidebar-link">
+                    <i class="bi bi-paperclip"></i>
+                    <span>Attachments</span>
+                </a>
+            </li>
             <li class="sidebar-item {{ request()->is('invoices*') ? 'active' : '' }}">
                 <a href="{{ route('invoices.index') }}" class="sidebar-link">
                     <i class="bi bi-receipt"></i>

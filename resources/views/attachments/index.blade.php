@@ -77,7 +77,7 @@
                                         <td>
                                             <span class="font-monospace">{{ $attachment->file_name }}</span>
                                         </td>
-                                        <td>{{ $attachment->uploaded_at ? $attachment->uploaded_at->format('Y-m-d H:i') : '-' }}</td>
+                                        <td>{{ $attachment->uploaded_at ? $attachment->uploaded_at->format('Y-m-d H:i:s') : '-' }}</td>
                                         <td>
                                             @php
                                                 try {
@@ -124,7 +124,7 @@
                                 @else
                                     -
                                 @endif<br>
-                                Uploaded At: <strong>{{ $attachment->uploaded_at ? $attachment->uploaded_at->format('Y-m-d H:i') : '-' }}</strong><br>
+                                Uploaded At: <strong>{{ $attachment->uploaded_at ? $attachment->uploaded_at->format('Y-m-d H:i:s') : '-' }}</strong><br>
                                 File Size:
                                 @php
                                     try {

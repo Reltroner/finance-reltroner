@@ -91,7 +91,8 @@ class AttachmentController extends Controller
      */
     public function edit(Attachment $attachment)
     {
-        return view('attachments.edit', compact('attachment'));
+        $transactions = \App\Models\Transaction::all();
+        return view('attachments.edit', compact('attachment', 'transactions'));
     }
 
     /**

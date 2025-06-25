@@ -14,6 +14,10 @@ class Attachment extends Model
         'transaction_id', 'file_path', 'file_name', 'uploaded_at'
     ];
 
+    protected $casts = [
+    'uploaded_at' => 'datetime',
+    ];
+
     public function transaction()
     {
         return $this->belongsTo(Transaction::class);
