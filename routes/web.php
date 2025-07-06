@@ -54,6 +54,7 @@ Route::resources([
     'taxes'               => TaxController::class,
     'transaction-details' => TransactionDetailController::class,
     'vendors'             => VendorController::class,
+    'auditlogs'           => AuditLogController::class, // <--- Added auditlogs (URL: /auditlogs)
 ]);
 
 // Attachment download (direct file)

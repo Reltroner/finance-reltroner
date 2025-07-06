@@ -1,4 +1,4 @@
-{{-- resources/views/attachments/edit.blade.php --}}
+{{-- resources/views/auditlogs/edit.blade.php --}}
 
 @extends('layouts.dashboard')
 
@@ -13,14 +13,14 @@
     <div class="page-title">
         <div class="row">
             <div class="col-12 col-md-6 order-md-1 order-last">
-                <h3>Edit Attachment</h3>
-                <p class="text-subtitle text-muted">You can update the attachment details here</p>
+                <h3>Edit Audit Log</h3>
+                <p class="text-subtitle text-muted">You can update the audit log details here</p>
             </div>
             <div class="col-12 col-md-6 order-md-2 order-first">
                 <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('attachments.index') }}">Attachments</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('audit-logs.index') }}">Audit Logs</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Edit</li>
                     </ol>
                 </nav>
@@ -31,55 +31,51 @@
     <section class="section">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">Edit Attachment Form</h5>
+                <h5 class="card-title mb-0">Edit Audit Log Form</h5>
             </div>
 
             <div class="card-body">
-                <form action="{{ route('attachments.update', $attachment->id) }}" method="POST">
+                <form action="{{ route('audit-logs.update', $auditLog->id) }}" method="POST">
                     @csrf
                     @method('PUT')
 
                     <div class="mb-3">
-                        <label for="file_name" class="form-label">File Name</label>
-                        <input type="text" class="form-control @error('file_name') is-invalid @enderror"
-                            name="file_name" id="file_name" value="{{ old('file_name', $attachment->file_name) }}">
-                        @error('file_name')
+                        <label for="action" class="form-label">Action</label>
+                        <input type="text" name="action" id="action" class="form-control @error('action') is-invalid @enderror"
+                               value="{{ old('action', $auditLog->action) }}">
+                        @error('action')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
                     <div class="mb-3">
-                        <label for="transaction_id" class="form-label">Related Transaction</label>
-                        <select name="transaction_id" id="transaction_id" class="form-select @error('transaction_id') is-invalid @enderror">
-                            <option value="">-- Select Transaction --</option>
-                            @foreach ($transactions as $transaction)
-                                <option value="{{ $transaction->id }}"
-                                    {{ old('transaction_id', $attachment->transaction_id) == $transaction->id ? 'selected' : '' }}>
-                                    #{{ $transaction->id }} {{ $transaction->description ? '— ' . $transaction->description : '' }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('transaction_id')
+                        <label for="user_id" class="form-label">User ID</label>
+                        <input type="number" name="user_id" id="user_id" class="form-control @error('user_id') is-invalid @enderror"
+                               value="{{ old('user_id', $auditLog->user_id) }}">
+                        @error('user_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Current File Path</label>
-                        <div>
-                            <code>{{ $attachment->file_path }}</code>
-                        </div>
+                        <label for="description" class="form-label">Description (Optional)</label>
+                        <textarea name="description" id="description" rows="4"
+                                  class="form-control @error('description') is-invalid @enderror">{{ old('description', $auditLog->description) }}</textarea>
+                        @error('description')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
 
                     <div class="d-flex justify-content-end">
-                        <a href="{{ route('attachments.index') }}" class="btn btn-secondary me-2">Cancel</a>
-                        <button type="submit" class="btn btn-primary">Update Attachment</button>
+                        <a href="{{ route('audit-logs.index') }}" class="btn btn-secondary me-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Update Audit Log</button>
                     </div>
                 </form>
             </div>
         </div>
     </section>
 </div>
+
 <style>
 .d-flex .btn {
     display: flex !important;
