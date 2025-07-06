@@ -1,74 +1,79 @@
 <?php
-// app/Http/Controllers/AuditLogController.php
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\AuditLog;
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class AuditLogController extends Controller
 {
     /**
-     * Display a listing of audit logs, with optional filters.
+     * Display a listing of the audit logs.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $query = AuditLog::query();
 
-        // Optional filters for easier audit trail browsing
+        // Optional filtering
         if ($request->filled('table_name')) {
             $query->where('table_name', $request->input('table_name'));
         }
+
         if ($request->filled('action')) {
             $query->where('action', $request->input('action'));
         }
+
         if ($request->filled('changed_by')) {
             $query->where('changed_by', $request->input('changed_by'));
         }
 
-        $logs = $query->orderByDesc('changed_at')->paginate(25);
+        $logs = $query->latest('changed_at')->paginate(10);
 
-        return response()->json($logs);
+        return view('auditlogs.index', compact('logs'));
     }
 
     /**
-     * Display the specified audit log (with decoded JSON for easy frontend use).
+     * Display the specified audit log with decoded data.
      */
-    public function show(AuditLog $auditLog): JsonResponse
+    public function show(AuditLog $auditLog)
     {
-        // Decode old/new data for frontend readability
         $auditLog->data_old = json_decode($auditLog->data_old, true);
         $auditLog->data_new = json_decode($auditLog->data_new, true);
-        return response()->json($auditLog);
+
+        return view('auditlogs.show', compact('auditLog'));
     }
 
     /**
-     * Block creation of audit logs via API.
+     * Prevent creation of audit logs via UI.
      */
-    public function store()
+    public function create()
     {
-        return response()->json([
-            'message' => 'Audit logs cannot be created via API.'
-        ], 405);
+        abort(405, 'Audit logs cannot be created manually.');
+    }
+
+    public function store(Request $request)
+    {
+        abort(405, 'Audit logs cannot be created manually.');
     }
 
     /**
-     * Block updating audit logs via API.
+     * Prevent editing audit logs via UI.
      */
-    public function update()
+    public function edit(AuditLog $auditLog)
     {
-        return response()->json([
-            'message' => 'Audit logs cannot be updated via API.'
-        ], 405);
+        abort(405, 'Audit logs cannot be edited.');
+    }
+
+    public function update(Request $request, AuditLog $auditLog)
+    {
+        abort(405, 'Audit logs cannot be updated.');
     }
 
     /**
-     * Block deleting audit logs via API.
+     * Prevent deletion of audit logs.
      */
-    public function destroy()
+    public function destroy(AuditLog $auditLog)
     {
-        return response()->json([
-            'message' => 'Audit logs cannot be deleted via API.'
-        ], 405);
+        abort(405, 'Audit logs cannot be deleted.');
     }
 }

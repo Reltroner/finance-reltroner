@@ -19,7 +19,7 @@
                 <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('audit-logs.index') }}">Audit Logs</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('auditlogs.index') }}">Audit Logs</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Create</li>
                     </ol>
                 </nav>
@@ -34,7 +34,7 @@
             </div>
 
             <div class="card-body">
-                <form action="{{ route('audit-logs.store') }}" method="POST">
+                <form action="{{ route('auditlogs.store') }}" method="POST">
                     @csrf
 
                     <div class="mb-3">
@@ -62,7 +62,7 @@
                     </div>
 
                     <div class="d-flex justify-content-end">
-                        <a href="{{ route('audit-logs.index') }}" class="btn btn-secondary me-2">Cancel</a>
+                        <a href="{{ route('auditlogs.index') }}" class="btn btn-secondary me-2">Cancel</a>
                         <button type="submit" class="btn btn-primary">Save Audit Log</button>
                     </div>
                 </form>

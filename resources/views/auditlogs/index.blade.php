@@ -58,9 +58,9 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($auditLogs as $log)
+                            @foreach ($logs as $log)
                                 <tr>
-                                    <td>{{ $loop->iteration + ($auditLogs->perPage() * ($auditLogs->currentPage() - 1)) }}</td>
+                                    <td>{{ $loop->iteration + ($logs->perPage() * ($logs->currentPage() - 1)) }}</td>
                                     <td>{{ $log->user->name ?? 'System' }}</td>
                                     <td>{{ $log->action }}</td>
                                     <td>{{ $log->description }}</td>
@@ -70,7 +70,7 @@
                         </tbody>
                     </table>
                     <div class="mt-3">
-                        {{ $auditLogs->links() }}
+                        {{ $logs->links() }}
                     </div>
                 </div>
             </div>
