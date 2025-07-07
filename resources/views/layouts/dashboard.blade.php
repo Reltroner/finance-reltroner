@@ -129,16 +129,16 @@
                     <span>AuditLog</span>
                 </a>
             </li>
+            <li class="sidebar-item {{ request()->is('budgets*') ? 'active' : '' }}">
+                <a href="{{ route('budgets.index') }}" class="sidebar-link">
+                    <i class="bi bi-list-ul"></i>
+                    <span>Budgets</span>
+                </a>
+            </li>
             <li class="sidebar-item {{ request()->is('invoices*') ? 'active' : '' }}">
                 <a href="{{ route('invoices.index') }}" class="sidebar-link">
                     <i class="bi bi-receipt"></i>
                     <span>Invoices</span>
-                </a>
-            </li>
-            <li class="sidebar-item {{ request()->is('budgets*') ? 'active' : '' }}">
-                <a href="{{ route('budgets.index') }}" class="sidebar-link">
-                    <i class="bi bi-list-ul"></i>
-                    <span>Budget Categories</span>
                 </a>
             </li>
             <li class="sidebar-item">

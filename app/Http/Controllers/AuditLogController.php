@@ -1,5 +1,5 @@
 <?php
-
+// app/Http/Controllers/AuditLogController.php
 namespace App\Http\Controllers;
 
 use App\Models\AuditLog;

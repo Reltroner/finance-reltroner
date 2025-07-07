@@ -17,7 +17,7 @@ return new class extends Migration
             $table->year('year');
             $table->tinyInteger('month');
             $table->decimal('amount', 18, 2);
-            $table->decimal('actual', 18, 2)->default(0);
+            $table->decimal('actual', 18, 2)->nullable()->default(0);
             $table->timestamps();
             $table->softDeletes();
         });

@@ -5,14 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Budget;
 use App\Models\Account;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 
 class BudgetController extends Controller
 {
     /**
-     * Display a listing of budgets, with optional filtering by account, year, or month.
+     * Display a listing of budgets in Blade view, with optional filters.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $query = Budget::with('account');
 
@@ -27,14 +26,24 @@ class BudgetController extends Controller
         }
 
         $budgets = $query->orderBy('year')->orderBy('month')->paginate(20);
+        $accounts = Account::all();
 
-        return response()->json($budgets);
+        return view('budgets.index', compact('budgets', 'accounts'));
+    }
+
+    /**
+     * Show the form for creating a new budget.
+     */
+    public function create()
+    {
+        $accounts = Account::all();
+        return view('budgets.create', compact('accounts'));
     }
 
     /**
      * Store a newly created budget.
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'account_id' => 'required|exists:accounts,id',
@@ -44,27 +53,28 @@ class BudgetController extends Controller
             'actual'     => 'nullable|numeric|min:0',
         ]);
 
-        $budget = Budget::create($validated);
+        // SET DEFAULT VALUE IF NULL
+        $validated['actual'] = $validated['actual'] ?? 0;
 
-        return response()->json([
-            'message' => 'Budget created successfully!',
-            'data'    => $budget,
-        ], 201);
+        Budget::create($validated);
+
+        return redirect()->route('budgets.index')->with('success', 'Budget created successfully!');
     }
 
+
     /**
-     * Display the specified budget.
+     * Show the form for editing the specified budget.
      */
-    public function show(Budget $budget): JsonResponse
+    public function edit(Budget $budget)
     {
-        $budget->load('account');
-        return response()->json($budget);
+        $accounts = Account::all();
+        return view('budgets.edit', compact('budget', 'accounts'));
     }
 
     /**
      * Update the specified budget.
      */
-    public function update(Request $request, Budget $budget): JsonResponse
+    public function update(Request $request, Budget $budget)
     {
         $validated = $request->validate([
             'account_id' => 'sometimes|required|exists:accounts,id',
@@ -74,23 +84,19 @@ class BudgetController extends Controller
             'actual'     => 'sometimes|nullable|numeric|min:0',
         ]);
 
+        $validated['actual'] = $validated['actual'] ?? 0;
+
         $budget->update($validated);
 
-        return response()->json([
-            'message' => 'Budget updated successfully!',
-            'data'    => $budget,
-        ]);
+        return redirect()->route('budgets.index')->with('success', 'Budget updated successfully!');
     }
 
     /**
-     * Remove the specified budget from storage (soft delete).
+     * Remove the specified budget.
      */
-    public function destroy(Budget $budget): JsonResponse
+    public function destroy(Budget $budget)
     {
         $budget->delete();
-
-        return response()->json([
-            'message' => 'Budget deleted successfully!'
-        ]);
+        return redirect()->route('budgets.index')->with('success', 'Budget deleted successfully!');
     }
 }
