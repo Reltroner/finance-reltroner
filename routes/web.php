@@ -40,12 +40,11 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 
 // RESTful Resource Routes (Blade & web forms)
 Route::resources([
-    'transactions'        => TransactionController::class,
     'accounts'            => AccountController::class,
     'attachments'         => AttachmentController::class,
-    'auditlogs'          => AuditLogController::class,
+    'auditlogs'           => AuditLogController::class,
     'budgets'             => BudgetController::class,
-    'cost-centers'        => CostCenterController::class,
+    'costcenters'         => CostCenterController::class,
     'currencies'          => CurrencyController::class,
     'customers'           => CustomerController::class,
     'invoices'            => InvoiceController::class,
@@ -53,11 +52,13 @@ Route::resources([
     'tax-applications'    => TaxApplicationController::class,
     'taxes'               => TaxController::class,
     'transaction-details' => TransactionDetailController::class,
+    'transactions'        => TransactionController::class,
     'vendors'             => VendorController::class,
 ]);
 
 // Attachment download (direct file)
-Route::get('attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
+Route::get('attachments/{attachment}/download', [AttachmentController::class, 'download'])
+    ->name('attachments.download');
 
 // API Endpoint (Sample static finance data)
 Route::get('/api/dashboard-summary', function () {

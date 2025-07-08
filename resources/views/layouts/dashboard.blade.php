@@ -135,6 +135,12 @@
                     <span>Budgets</span>
                 </a>
             </li>
+            <li class="sidebar-item {{ request()->is('costcenters*') ? 'active' : '' }}">
+                <a href="{{ route('costcenters.index') }}" class="sidebar-link">
+                    <i class="bi bi-list-ul"></i>
+                    <span>Cost Centers</span>
+                </a>
+            </li>
             <li class="sidebar-item {{ request()->is('invoices*') ? 'active' : '' }}">
                 <a href="{{ route('invoices.index') }}" class="sidebar-link">
                     <i class="bi bi-receipt"></i>
