@@ -22,9 +22,9 @@ class CostCenterController extends Controller
             $query->where('name', 'like', '%' . $request->input('name') . '%');
         }
 
-        $costCenters = $query->orderBy('name')->paginate(20);
+        $costcenters = $query->orderBy('name')->paginate(20);
 
-        return view('costcenters.index', compact('costCenters'));
+        return view('costcenters.index', compact('costcenters'));
     }
 
     /**
@@ -45,55 +45,53 @@ class CostCenterController extends Controller
             'description' => 'nullable|string',
             'is_active'   => 'boolean',
         ]);
-        // is_active default true (optional)
-        if (!isset($validated['is_active'])) {
-            $validated['is_active'] = true;
-        }
+        // Set default is_active to true if not provided
+        $validated['is_active'] = $validated['is_active'] ?? true;
 
         CostCenter::create($validated);
 
-        return redirect()->route('cost-centers.index')->with('success', 'Cost center created successfully!');
+        return redirect()->route('costcenters.index')->with('success', 'Cost center created successfully!');
     }
 
     /**
      * Display the specified cost center.
      */
-    public function show(CostCenter $costCenter)
+    public function show(CostCenter $costcenter)
     {
-        return view('costcenters.show', compact('costCenter'));
+        return view('costcenters.show', compact('costcenter'));
     }
 
     /**
      * Show the form for editing the specified cost center.
      */
-    public function edit(CostCenter $costCenter)
+    public function edit(CostCenter $costcenter)
     {
-        return view('costcenters.edit', compact('costCenter'));
+        return view('costcenters.edit', compact('costcenter'));
     }
 
     /**
      * Update the specified cost center in storage.
      */
-    public function update(Request $request, CostCenter $costCenter)
+    public function update(Request $request, CostCenter $costcenter)
     {
         $validated = $request->validate([
-            'name'        => 'sometimes|required|string|max:255|unique:cost_centers,name,' . $costCenter->id,
+            'name'        => 'sometimes|required|string|max:255|unique:cost_centers,name,' . $costcenter->id,
             'description' => 'nullable|string',
             'is_active'   => 'boolean',
         ]);
 
-        $costCenter->update($validated);
+        $costcenter->update($validated);
 
-        return redirect()->route('cost-centers.index')->with('success', 'Cost center updated successfully!');
+        return redirect()->route('costcenters.index')->with('success', 'Cost center updated successfully!');
     }
 
     /**
      * Remove the specified cost center from storage (soft delete).
      */
-    public function destroy(CostCenter $costCenter)
+    public function destroy(CostCenter $costcenter)
     {
-        $costCenter->delete();
+        $costcenter->delete();
 
-        return redirect()->route('cost-centers.index')->with('success', 'Cost center deleted successfully!');
+        return redirect()->route('costcenters.index')->with('success', 'Cost center deleted successfully!');
     }
 }

@@ -12,14 +12,14 @@
     <div class="page-title">
         <div class="row">
             <div class="col-12 col-md-6 order-md-1 order-last">
-                <h3>Create Budget</h3>
-                <p class="text-subtitle text-muted">Define a new budget entry for a specific account, year, and month</p>
+                <h3>Create Cost Center</h3>
+                <p class="text-subtitle text-muted">Define a new cost center for budget grouping and control</p>
             </div>
             <div class="col-12 col-md-6 order-md-2 order-first">
                 <nav aria-label="breadcrumb" class="breadcrumb-header float-start float-lg-end">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
-                        <li class="breadcrumb-item"><a href="{{ route('budgets.index') }}">Budgets</a></li>
+                        <li class="breadcrumb-item"><a href="{{ route('costcenters.index') }}">Cost Centers</a></li>
                         <li class="breadcrumb-item active" aria-current="page">Create</li>
                     </ol>
                 </nav>
@@ -30,65 +30,37 @@
     <section class="section">
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">New Budget Form</h5>
+                <h5 class="card-title mb-0">New Cost Center Form</h5>
             </div>
 
             <div class="card-body">
-                <form action="{{ route('budgets.store') }}" method="POST">
+                <form action="{{ route('costcenters.store') }}" method="POST">
                     @csrf
 
                     <div class="mb-3">
-                        <label for="account_id" class="form-label">Account</label>
-                        <select name="account_id" id="account_id" class="form-select @error('account_id') is-invalid @enderror" required>
-                            <option value="">-- Select Account --</option>
-                            @foreach ($accounts as $account)
-                                <option value="{{ $account->id }}" {{ old('account_id') == $account->id ? 'selected' : '' }}>
-                                    {{ $account->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('account_id')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="year" class="form-label">Year</label>
-                            <input type="number" name="year" id="year" class="form-control @error('year') is-invalid @enderror" value="{{ old('year') }}" required>
-                            @error('year')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label for="month" class="form-label">Month</label>
-                            <input type="number" name="month" id="month" class="form-control @error('month') is-invalid @enderror" value="{{ old('month') }}" required>
-                            @error('month')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="amount" class="form-label">Planned Amount</label>
-                        <input type="number" step="0.01" name="amount" id="amount" class="form-control @error('amount') is-invalid @enderror" value="{{ old('amount') }}" required>
-                        @error('amount')
+                        <label for="name" class="form-label">Cost Center Name</label>
+                        <input type="text" name="name" id="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name') }}" required>
+                        @error('name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
 
                     <div class="mb-3">
-                        <label for="actual" class="form-label">Actual Amount (Optional)</label>
-                        <input type="number" step="0.01" name="actual" id="actual" class="form-control @error('actual') is-invalid @enderror" value="{{ old('actual', 0) }}">
-                        @error('actual')
+                        <label for="description" class="form-label">Description (Optional)</label>
+                        <textarea name="description" id="description" rows="3" class="form-control @error('description') is-invalid @enderror">{{ old('description') }}</textarea>
+                        @error('description')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="is_active" id="is_active" class="form-check-input" value="1" {{ old('is_active', 1) ? 'checked' : '' }}>
+                        <label for="is_active" class="form-check-label">Active</label>
                     </div>
 
                     <div class="d-flex justify-content-end">
-                        <a href="{{ route('budgets.index') }}" class="btn btn-secondary me-2">Cancel</a>
-                        <button type="submit" class="btn btn-primary">Save Budget</button>
+                        <a href="{{ route('costcenters.index') }}" class="btn btn-secondary me-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Save Cost Center</button>
                     </div>
                 </form>
             </div>
@@ -115,4 +87,3 @@
 }
 </style>
 @endsection
-{{-- resources/views/budgets/create.blade.php --}}
