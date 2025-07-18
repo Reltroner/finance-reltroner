@@ -125,22 +125,59 @@
             </li>
             <li class="sidebar-item {{ request()->is('auditlogs*') ? 'active' : '' }}">
                 <a href="{{ route('auditlogs.index') }}" class="sidebar-link">
-                    <i class="bi bi-list-ul"></i>
+                    <i class="bi bi-list-check"></i>
                     <span>AuditLog</span>
                 </a>
             </li>
             <li class="sidebar-item {{ request()->is('budgets*') ? 'active' : '' }}">
                 <a href="{{ route('budgets.index') }}" class="sidebar-link">
-                    <i class="bi bi-list-ul"></i>
+                    <i class="bi bi-cash-coin"></i>
                     <span>Budgets</span>
                 </a>
             </li>
             <li class="sidebar-item {{ request()->is('costcenters*') ? 'active' : '' }}">
                 <a href="{{ route('costcenters.index') }}" class="sidebar-link">
-                    <i class="bi bi-list-ul"></i>
+                    <i class="bi bi-wallet"></i>
                     <span>Cost Centers</span>
                 </a>
             </li>
+            <li class="sidebar-item {{ request()->is('currencies*') ? 'active' : '' }}">
+                <a href="{{ route('currencies.index') }}" class="sidebar-link">
+                    <i class="bi bi-currency-exchange"></i>
+                    <span>Currencies</span>
+                </a>
+            </li>
+            {{-- <li class="sidebar-item {{ request()->is('categories*') ? 'active' : '' }}">
+                <a href="{{ route('categories.index') }}" class="sidebar-link">
+                    <i class="bi bi-tags"></i>
+                    <span>Categories</span>
+                </a>
+            </li> --}}
+            <li class="sidebar-item {{ request()->is('taxes*') ? 'active' : '' }}">
+                <a href="{{ route('taxes.index') }}" class="sidebar-link">
+                    <i class="bi bi-percent"></i>
+                    <span>Taxes</span>
+                </a>
+            </li>
+            {{-- <li class="sidebar-item {{ request()->is('reports*') ? 'active' : '' }}">
+                <a href="{{ route('reports.index') }}" class="sidebar-link">
+                    <i class="bi bi-graph-up"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+            <li class="sidebar-item {{ request()->is('settings*') ? 'active' : '' }}">
+                <a href="{{ route('settings.index') }}" class="sidebar-link">
+                    <i class="bi bi-gear"></i>
+                    <span>Settings</span>
+                </a>
+            </li>
+            <li class="sidebar-title">Other Features</li>
+            <li class="sidebar-item {{ request()->is('users*') ? 'active' : '' }}">
+                <a href="{{ route('users.index') }}" class="sidebar-link">
+                    <i class="bi bi-people"></i>
+                    <span>Users</span>
+                </a>
+            </li> --}}
             <li class="sidebar-item {{ request()->is('invoices*') ? 'active' : '' }}">
                 <a href="{{ route('invoices.index') }}" class="sidebar-link">
                     <i class="bi bi-receipt"></i>

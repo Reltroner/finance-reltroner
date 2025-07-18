@@ -1,5 +1,6 @@
 <?php
 // app/Http/Controllers/CurrencyController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Currency;
@@ -9,9 +10,9 @@ use Illuminate\Http\JsonResponse;
 class CurrencyController extends Controller
 {
     /**
-     * Display a listing of currencies, with optional filtering by code or name.
+     * Display a listing of currencies (Blade UI).
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $query = Currency::query();
 
@@ -24,23 +25,47 @@ class CurrencyController extends Controller
 
         $currencies = $query->orderBy('code')->paginate(20);
 
+        // Blade UI request (default)
+        if (!$request->wantsJson()) {
+            return view('currencies.index', compact('currencies'));
+        }
+
+        // JSON (API) response
         return response()->json($currencies);
     }
 
     /**
-     * Store a newly created currency in storage.
+     * Show the form for creating a new currency.
      */
-    public function store(Request $request): JsonResponse
+    public function create()
+    {
+        return view('currencies.create');
+    }
+
+    /**
+     * Store a newly created currency.
+     */
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'code'   => 'required|string|max:10|unique:currencies,code',
             'name'   => 'required|string|max:100',
             'symbol' => 'nullable|string|max:10',
             'rate'   => 'required|numeric|min:0',
+            'is_active' => 'nullable|boolean',
         ]);
+
+        // default is_active to true if not set
+        $validated['is_active'] = $request->boolean('is_active', true);
 
         $currency = Currency::create($validated);
 
+        // Blade UI response
+        if (!$request->wantsJson()) {
+            return redirect()->route('currencies.index')->with('success', 'Currency created successfully!');
+        }
+
+        // JSON API response
         return response()->json([
             'message' => 'Currency created successfully!',
             'data'    => $currency,
@@ -48,26 +73,46 @@ class CurrencyController extends Controller
     }
 
     /**
-     * Display the specified currency.
+     * Display the specified currency (Blade or JSON).
      */
-    public function show(Currency $currency): JsonResponse
+    public function show(Request $request, Currency $currency)
     {
+        if (!$request->wantsJson()) {
+            return view('currencies.show', compact('currency'));
+        }
         return response()->json($currency);
     }
 
     /**
-     * Update the specified currency in storage.
+     * Show the form for editing the specified currency.
      */
-    public function update(Request $request, Currency $currency): JsonResponse
+    public function edit(Currency $currency)
+    {
+        return view('currencies.edit', compact('currency'));
+    }
+
+    /**
+     * Update the specified currency.
+     */
+    public function update(Request $request, Currency $currency)
     {
         $validated = $request->validate([
             'code'   => 'sometimes|required|string|max:10|unique:currencies,code,' . $currency->id,
             'name'   => 'sometimes|required|string|max:100',
             'symbol' => 'nullable|string|max:10',
             'rate'   => 'sometimes|required|numeric|min:0',
+            'is_active' => 'nullable|boolean',
         ]);
 
+        if ($request->has('is_active')) {
+            $validated['is_active'] = $request->boolean('is_active');
+        }
+
         $currency->update($validated);
+
+        if (!$request->wantsJson()) {
+            return redirect()->route('currencies.index')->with('success', 'Currency updated successfully!');
+        }
 
         return response()->json([
             'message' => 'Currency updated successfully!',
@@ -76,11 +121,15 @@ class CurrencyController extends Controller
     }
 
     /**
-     * Remove the specified currency from storage (soft delete).
+     * Remove the specified currency (soft delete).
      */
-    public function destroy(Currency $currency): JsonResponse
+    public function destroy(Request $request, Currency $currency)
     {
         $currency->delete();
+
+        if (!$request->wantsJson()) {
+            return redirect()->route('currencies.index')->with('success', 'Currency deleted successfully!');
+        }
 
         return response()->json([
             'message' => 'Currency deleted successfully!',
