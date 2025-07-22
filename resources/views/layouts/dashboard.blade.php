@@ -147,6 +147,12 @@
                     <span>Currencies</span>
                 </a>
             </li>
+            <li class="sidebar-item {{ request()->is('customers*') ? 'active' : '' }}">
+                <a href="{{ route('customers.index') }}" class="sidebar-link">
+                    <i class="bi bi-people"></i>
+                    <span>Customers</span>
+                </a>
+            </li>
             {{-- <li class="sidebar-item {{ request()->is('categories*') ? 'active' : '' }}">
                 <a href="{{ route('categories.index') }}" class="sidebar-link">
                     <i class="bi bi-tags"></i>

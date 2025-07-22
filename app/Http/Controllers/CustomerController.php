@@ -1,17 +1,17 @@
 <?php
 // app/Http/Controllers/CustomerController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 
 class CustomerController extends Controller
 {
     /**
-     * Display a listing of customers, with optional search by name/email/phone.
+     * Display a listing of customers (web & JSON).
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $query = Customer::query();
 
@@ -27,13 +27,26 @@ class CustomerController extends Controller
 
         $customers = $query->orderBy('name')->paginate(20);
 
+        // Blade UI (default)
+        if (!$request->wantsJson()) {
+            return view('customers.index', compact('customers'));
+        }
+        // JSON response (API)
         return response()->json($customers);
+    }
+
+    /**
+     * Show the form for creating a new customer.
+     */
+    public function create()
+    {
+        return view('customers.create');
     }
 
     /**
      * Store a newly created customer.
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'name'       => 'required|string|max:255',
@@ -45,6 +58,10 @@ class CustomerController extends Controller
 
         $customer = Customer::create($validated);
 
+        if (!$request->wantsJson()) {
+            return redirect()->route('customers.index')->with('success', 'Customer created successfully!');
+        }
+
         return response()->json([
             'message' => 'Customer created successfully!',
             'data'    => $customer,
@@ -52,17 +69,28 @@ class CustomerController extends Controller
     }
 
     /**
-     * Display the specified customer.
+     * Display the specified customer (web & JSON).
      */
-    public function show(Customer $customer): JsonResponse
+    public function show(Request $request, Customer $customer)
     {
+        if (!$request->wantsJson()) {
+            return view('customers.show', compact('customer'));
+        }
         return response()->json($customer);
+    }
+
+    /**
+     * Show the form for editing the specified customer.
+     */
+    public function edit(Customer $customer)
+    {
+        return view('customers.edit', compact('customer'));
     }
 
     /**
      * Update the specified customer.
      */
-    public function update(Request $request, Customer $customer): JsonResponse
+    public function update(Request $request, Customer $customer)
     {
         $validated = $request->validate([
             'name'       => 'sometimes|required|string|max:255',
@@ -74,6 +102,10 @@ class CustomerController extends Controller
 
         $customer->update($validated);
 
+        if (!$request->wantsJson()) {
+            return redirect()->route('customers.index')->with('success', 'Customer updated successfully!');
+        }
+
         return response()->json([
             'message' => 'Customer updated successfully!',
             'data'    => $customer,
@@ -81,11 +113,15 @@ class CustomerController extends Controller
     }
 
     /**
-     * Remove the specified customer from storage (soft delete).
+     * Remove the specified customer (soft delete).
      */
-    public function destroy(Customer $customer): JsonResponse
+    public function destroy(Request $request, Customer $customer)
     {
         $customer->delete();
+
+        if (!$request->wantsJson()) {
+            return redirect()->route('customers.index')->with('success', 'Customer deleted successfully!');
+        }
 
         return response()->json([
             'message' => 'Customer deleted successfully!',
