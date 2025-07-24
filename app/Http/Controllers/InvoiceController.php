@@ -5,14 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\Invoice;
 use App\Models\Customer;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 
 class InvoiceController extends Controller
 {
     /**
-     * Display a listing of invoices, with optional filter by customer, status, date, or invoice_number.
+     * Display a listing of invoices with filter.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $query = Invoice::with('customer');
 
@@ -30,14 +29,24 @@ class InvoiceController extends Controller
         }
 
         $invoices = $query->orderByDesc('date')->paginate(20);
+        $customers = Customer::orderBy('name')->get();
 
-        return response()->json($invoices);
+        return view('invoices.index', compact('invoices', 'customers'));
     }
 
     /**
-     * Store a newly created invoice.
+     * Show the form for creating a new invoice.
      */
-    public function store(Request $request): JsonResponse
+    public function create()
+    {
+        $customers = Customer::orderBy('name')->get();
+        return view('invoices.create', compact('customers'));
+    }
+
+    /**
+     * Store a newly created invoice in storage.
+     */
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'invoice_number' => 'required|string|max:100|unique:invoices,invoice_number',
@@ -51,25 +60,33 @@ class InvoiceController extends Controller
 
         $invoice = Invoice::create($validated);
 
-        return response()->json([
-            'message' => 'Invoice created successfully!',
-            'data'    => $invoice->load('customer'),
-        ], 201);
+        return redirect()
+            ->route('invoices.show', $invoice->id)
+            ->with('success', 'Invoice created successfully!');
     }
 
     /**
      * Display the specified invoice.
      */
-    public function show(Invoice $invoice): JsonResponse
+    public function show(Invoice $invoice)
     {
         $invoice->load('customer');
-        return response()->json($invoice);
+        return view('invoices.show', compact('invoice'));
     }
 
     /**
-     * Update the specified invoice.
+     * Show the form for editing the specified invoice.
      */
-    public function update(Request $request, Invoice $invoice): JsonResponse
+    public function edit(Invoice $invoice)
+    {
+        $customers = Customer::orderBy('name')->get();
+        return view('invoices.edit', compact('invoice', 'customers'));
+    }
+
+    /**
+     * Update the specified invoice in storage.
+     */
+    public function update(Request $request, Invoice $invoice)
     {
         $validated = $request->validate([
             'invoice_number' => 'sometimes|required|string|max:100|unique:invoices,invoice_number,' . $invoice->id,
@@ -83,21 +100,20 @@ class InvoiceController extends Controller
 
         $invoice->update($validated);
 
-        return response()->json([
-            'message' => 'Invoice updated successfully!',
-            'data'    => $invoice->load('customer'),
-        ]);
+        return redirect()
+            ->route('invoices.show', $invoice->id)
+            ->with('success', 'Invoice updated successfully!');
     }
 
     /**
      * Remove the specified invoice from storage (soft delete).
      */
-    public function destroy(Invoice $invoice): JsonResponse
+    public function destroy(Invoice $invoice)
     {
         $invoice->delete();
 
-        return response()->json([
-            'message' => 'Invoice deleted successfully!',
-        ]);
+        return redirect()
+            ->route('invoices.index')
+            ->with('success', 'Invoice deleted successfully!');
     }
 }
