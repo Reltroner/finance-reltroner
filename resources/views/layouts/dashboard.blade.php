@@ -190,6 +190,12 @@
                     <span>Invoices</span>
                 </a>
             </li>
+            <li class="sidebar-item {{ request()->is('payments*') ? 'active' : '' }}">
+                <a href="{{ route('payments.index') }}" class="sidebar-link">
+                    <i class="bi bi-credit-card"></i>
+                    <span>Payments</span>
+                </a>
+            </li>
             <li class="sidebar-item">
                 <form method="POST" class="sidebar-link" action="index.html">
                     @csrf

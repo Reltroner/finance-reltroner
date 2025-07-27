@@ -1,5 +1,6 @@
 <?php
 // app/Http/Controllers/PaymentController.php
+
 namespace App\Http\Controllers;
 
 use App\Models\Payment;
@@ -8,14 +9,13 @@ use App\Models\Vendor;
 use App\Models\Customer;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 
 class PaymentController extends Controller
 {
     /**
      * Display a listing of payments, with optional filters.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $query = Payment::with(['invoice', 'vendor', 'customer', 'transaction']);
 
@@ -37,13 +37,31 @@ class PaymentController extends Controller
 
         $payments = $query->orderByDesc('date')->paginate(20);
 
-        return response()->json($payments);
+        // Data tambahan untuk filter & relasi select
+        $invoices = Invoice::all();
+        $vendors = Vendor::all();
+        $customers = Customer::all();
+        $transactions = Transaction::all();
+
+        return view('payments.index', compact('payments', 'invoices', 'vendors', 'customers', 'transactions'));
+    }
+
+    /**
+     * Show the form for creating a new payment.
+     */
+    public function create()
+    {
+        $invoices = Invoice::all();
+        $vendors = Vendor::all();
+        $customers = Customer::all();
+        $transactions = Transaction::all();
+        return view('payments.create', compact('invoices', 'vendors', 'customers', 'transactions'));
     }
 
     /**
      * Store a newly created payment.
      */
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
         $validated = $request->validate([
             'invoice_id'     => 'nullable|exists:invoices,id',
@@ -59,25 +77,35 @@ class PaymentController extends Controller
 
         $payment = Payment::create($validated);
 
-        return response()->json([
-            'message' => 'Payment created successfully!',
-            'data'    => $payment->load(['invoice', 'vendor', 'customer', 'transaction']),
-        ], 201);
+        return redirect()->route('payments.index')
+            ->with('success', 'Payment created successfully!');
     }
 
     /**
      * Display the specified payment.
      */
-    public function show(Payment $payment): JsonResponse
+    public function show(Payment $payment)
     {
         $payment->load(['invoice', 'vendor', 'customer', 'transaction']);
-        return response()->json($payment);
+        return view('payments.show', compact('payment'));
+    }
+
+    /**
+     * Show the form for editing the specified payment.
+     */
+    public function edit(Payment $payment)
+    {
+        $invoices = Invoice::all();
+        $vendors = Vendor::all();
+        $customers = Customer::all();
+        $transactions = Transaction::all();
+        return view('payments.edit', compact('payment', 'invoices', 'vendors', 'customers', 'transactions'));
     }
 
     /**
      * Update the specified payment.
      */
-    public function update(Request $request, Payment $payment): JsonResponse
+    public function update(Request $request, Payment $payment)
     {
         $validated = $request->validate([
             'invoice_id'     => 'nullable|exists:invoices,id',
@@ -93,21 +121,18 @@ class PaymentController extends Controller
 
         $payment->update($validated);
 
-        return response()->json([
-            'message' => 'Payment updated successfully!',
-            'data'    => $payment->load(['invoice', 'vendor', 'customer', 'transaction']),
-        ]);
+        return redirect()->route('payments.index')
+            ->with('success', 'Payment updated successfully!');
     }
 
     /**
      * Remove the specified payment from storage (soft delete).
      */
-    public function destroy(Payment $payment): JsonResponse
+    public function destroy(Payment $payment)
     {
         $payment->delete();
 
-        return response()->json([
-            'message' => 'Payment deleted successfully!',
-        ]);
+        return redirect()->route('payments.index')
+            ->with('success', 'Payment deleted successfully!');
     }
 }
