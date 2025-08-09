@@ -2,71 +2,74 @@
 // routes/web.php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\AccountController;
-use App\Http\Controllers\AttachmentController;
-use App\Http\Controllers\AuditLogController;
-use App\Http\Controllers\BudgetController;
-use App\Http\Controllers\CostCenterController;
-use App\Http\Controllers\CurrencyController;
-use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\InvoiceController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\TaxApplicationController;
-use App\Http\Controllers\TaxController;
-use App\Http\Controllers\TransactionController;
-use App\Http\Controllers\TransactionDetailController;
-use App\Http\Controllers\VendorController;
+use App\Http\Controllers\{
+    DashboardController,
+    AccountController,
+    AttachmentController,
+    AuditLogController,
+    BudgetController,
+    CostCenterController,
+    CurrencyController,
+    CustomerController,
+    InvoiceController,
+    PaymentController,
+    TaxApplicationController,
+    TaxController,
+    TransactionController,
+    TransactionDetailController,
+    VendorController
+};
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| This module (finance-reltroner) is fully modular and self-contained.
-| Each route is prefixed only by its resource, not by /finance/
-| because the domain already reflects the module.
-| Example: http://finance.reltroner.local:9002/transactions
-|
+| Modul finance-reltroner (Blade UI)
+| Domain/subdomain modul sudah mengindikasikan konteks finance.
 */
 
-// Homepage fallback
-Route::get('/', function () {
-    return redirect()->route('dashboard');
-});
+Route::redirect('/', '/dashboard');
 
-// UI dashboard (Blade-based)
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::middleware(['web', 'auth']) // sesuaikan middleware auth/session kamu
+    ->group(function () {
 
-// RESTful Resource Routes (Blade & web forms)
-Route::resources([
-    'accounts'            => AccountController::class,
-    'attachments'         => AttachmentController::class,
-    'auditlogs'           => AuditLogController::class,
-    'budgets'             => BudgetController::class,
-    'costcenters'         => CostCenterController::class,
-    'currencies'          => CurrencyController::class,
-    'customers'           => CustomerController::class,
-    'invoices'            => InvoiceController::class,
-    'payments'            => PaymentController::class,
-    'tax-applications'    => TaxApplicationController::class,
-    'taxes'               => TaxController::class,
-    'transaction-details' => TransactionDetailController::class,
-    'transactions'        => TransactionController::class,
-    'vendors'             => VendorController::class,
-]);
+    // Dashboard
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-// Attachment download (direct file)
-Route::get('attachments/{attachment}/download', [AttachmentController::class, 'download'])
-    ->name('attachments.download');
+    // General Ledger (buku besar) — konsisten dgn TransactionController@ledger
+    // GET /ledger?account_id=&date_from=&date_to=&cost_center_id=&reference=&status=
+    Route::get('/ledger', [TransactionController::class, 'ledger'])->name('transactions.ledger');
 
-// API Endpoint (Sample static finance data)
-Route::get('/api/dashboard-summary', function () {
-    return response()->json([
-        'assets'      => 120000,
-        'liabilities' => 50000,
-        'equity'      => 70000,
-        'profit'      => [15000, 12000, 18000, 20000, 17000, 21000],
-        'loss'        => [2000, 1000, 3000, 2500, 1500, 1800],
+    // Resource routes (Blade CRUD)
+    Route::resources([
+        'accounts'            => AccountController::class,
+        'attachments'         => AttachmentController::class,
+        'auditlogs'           => AuditLogController::class,
+        'budgets'             => BudgetController::class,
+        'costcenters'         => CostCenterController::class,
+        'currencies'          => CurrencyController::class,
+        'customers'           => CustomerController::class,
+        'invoices'            => InvoiceController::class,
+        'payments'            => PaymentController::class,
+        'tax-applications'    => TaxApplicationController::class,
+        'taxes'               => TaxController::class,
+        'transaction-details' => TransactionDetailController::class,
+        'transactions'        => TransactionController::class,
+        'vendors'             => VendorController::class,
     ]);
-})->name('api.dashboard.summary');
+
+    // Attachment download (file langsung)
+    Route::get('attachments/{attachment}/download', [AttachmentController::class, 'download'])
+        ->name('attachments.download');
+
+    // Sample API untuk dashboard (opsional)
+    Route::get('/api/dashboard-summary', function () {
+        return response()->json([
+            'assets'      => 120000,
+            'liabilities' => 50000,
+            'equity'      => 70000,
+            'profit'      => [15000, 12000, 18000, 20000, 17000, 21000],
+            'loss'        => [2000, 1000, 3000, 2500, 1500, 1800],
+        ]);
+    })->name('api.dashboard.summary');
+});

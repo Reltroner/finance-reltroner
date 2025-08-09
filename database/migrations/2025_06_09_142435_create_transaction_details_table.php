@@ -13,12 +13,12 @@ return new class extends Migration
     {
         Schema::create('transaction_details', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('transaction_id')->constrained('transactions')->onDelete('cascade');
+            $table->foreignId('transaction_id')->constrained('transactions')->cascadeOnDelete();
             $table->foreignId('account_id')->constrained('accounts');
-            $table->text('description')->nullable();
             $table->decimal('debit', 18, 2)->default(0);
             $table->decimal('credit', 18, 2)->default(0);
-            $table->foreignId('cost_center_id')->nullable()->constrained('cost_centers')->onDelete('set null');  
+            $table->foreignId('cost_center_id')->nullable()->constrained('cost_centers')->nullOnDelete();
+            $table->string('memo', 255)->nullable(); // <— tambahkan ini
             $table->timestamps();
             $table->softDeletes();
         });
