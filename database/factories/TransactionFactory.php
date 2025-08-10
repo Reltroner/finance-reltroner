@@ -10,6 +10,7 @@ use App\Models\Account;
 use App\Models\CostCenter;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Transaction>
@@ -132,51 +133,39 @@ class TransactionFactory extends Factory
         $lines = max(2, $lines); // minimal 2 baris
 
         return $this->afterCreating(function (Transaction $tx) use ($lines) {
-            // Ambil total & bagi ke beberapa baris
-            $remainingDebit  = (float) $tx->total_debit;
-            $remainingCredit = (float) $tx->total_credit;
+            // Ambil total target dari header (sudah debit=credit)
+            $targetDebit  = round((float)$tx->total_debit, 2);
+            $targetCredit = round((float)$tx->total_credit, 2);
 
-            // Pastikan ada account & cost center (fallback factory jika kosong)
-            $accounts    = Account::query()->inRandomOrder()->limit($lines)->pluck('id');
+            // Siapkan akun & cost center
+            $accounts = Account::query()->inRandomOrder()->limit($lines)->pluck('id')->values();
             if ($accounts->count() < $lines) {
-                // create sisa account via factory jika belum ada
                 for ($i = $accounts->count(); $i < $lines; $i++) {
                     $accounts->push(Account::factory()->create()->id);
                 }
             }
-            $costcenters = CostCenter::query()->inRandomOrder()->limit($lines)->pluck('id');
+            $costcenters = CostCenter::query()->inRandomOrder()->limit($lines)->pluck('id')->values();
 
-            // Generate n-1 baris acak, baris terakhir sebagai balancing
-            for ($i = 0; $i < $lines; $i++) {
-                $isDebit = ($i % 2 === 0); // selang-seling
-                $amount  = $i === $lines - 1
-                    ? ($isDebit ? $remainingDebit : $remainingCredit)
-                    : round($this->faker->randomFloat(2, 1, max(1, ($tx->total_debit / $lines))), 2);
+            // Kita buat n-2 baris acak, 2 baris terakhir untuk balancing
+            $randLines = max(0, $lines - 2);
+            $remainingDebit  = $targetDebit;
+            $remainingCredit = $targetCredit;
+
+            // Batas wajar untuk nilai acak per baris
+            $cap = max(1, $targetDebit / max(2, $lines));
+
+            for ($i = 0; $i < $randLines; $i++) {
+                $isDebit = ($i % 2 === 0);
+                $amount  = round($this->faker->randomFloat(2, 1, $cap), 2);
 
                 if ($isDebit) {
                     $amount = min($amount, $remainingDebit);
-                    $debit = $amount;
-                    $credit = 0;
+                    $debit = $amount; $credit = 0;
                     $remainingDebit  = round($remainingDebit  - $debit, 2);
                 } else {
                     $amount = min($amount, $remainingCredit);
-                    $debit = 0;
-                    $credit = $amount;
+                    $debit = 0; $credit = $amount;
                     $remainingCredit = round($remainingCredit - $credit, 2);
-                }
-
-                // Jika ini baris terakhir dan masih ada selisih, pasangkan agar balance
-                if ($i === $lines - 1) {
-                    if ($isDebit && $remainingCredit > 0) {
-                        // ubah baris terakhir jadi credit agar balance
-                        $credit = $remainingCredit;
-                        $debit  = 0;
-                        $remainingCredit = 0;
-                    } elseif (!$isDebit && $remainingDebit > 0) {
-                        $debit  = $remainingDebit;
-                        $credit = 0;
-                        $remainingDebit = 0;
-                    }
                 }
 
                 TransactionDetail::create([
@@ -189,21 +178,63 @@ class TransactionFactory extends Factory
                 ]);
             }
 
-            // Safety: hitung ulang total dari detail (kalau mau konsisten penuh)
+            // 2 baris terakhir = balancing (pastikan urutan debit dulu lalu credit)
+            $idx = $randLines;
+
+            if ($remainingDebit > 0) {
+                TransactionDetail::create([
+                    'transaction_id'  => $tx->id,
+                    'account_id'      => $accounts[$idx] ?? $accounts->random(),
+                    'debit'           => $remainingDebit,
+                    'credit'          => 0,
+                    'cost_center_id'  => $costcenters[$idx] ?? null,
+                    'memo'            => 'Balancing debit',
+                ]);
+                $idx++;
+            } else {
+                // kalau sisa debit 0, buat baris nol? tidak perlu—cukup lanjut
+            }
+
+            if ($remainingCredit > 0) {
+                TransactionDetail::create([
+                    'transaction_id'  => $tx->id,
+                    'account_id'      => $accounts[$idx] ?? $accounts->random(),
+                    'debit'           => 0,
+                    'credit'          => $remainingCredit,
+                    'cost_center_id'  => $costcenters[$idx] ?? null,
+                    'memo'            => 'Balancing credit',
+                ]);
+            }
+
+            // Safety: bila karena pembulatan masih beda, tambahkan satu balancing line ekstra
             $sumD = round($tx->details()->sum('debit'), 2);
             $sumC = round($tx->details()->sum('credit'), 2);
-            DB::table('transactions')
-                ->where('id', $tx->id)
-                ->update([
-                    'total_debit'       => $sumD,
-                    'total_credit'      => $sumC,
-                    'total_debit_base'  => round($sumD * (float)$tx->exchange_rate, 2),
-                    'total_credit_base' => round($sumC * (float)$tx->exchange_rate, 2),
-                    'updated_at'        => now(),
-                ]);
+            $diff = round($sumD - $sumC, 2);
 
-            // sinkronkan model di memori (opsional agar objek $tx up-to-date)
-            $tx->refresh();
+            if ($diff !== 0.0) {
+                // pilih akun suspense jika ada, jika tidak pakai akun random
+                $suspense = Account::where('code', '3999')->value('id') ?? $accounts->random();
+                TransactionDetail::create([
+                    'transaction_id'  => $tx->id,
+                    'account_id'      => $suspense,
+                    'debit'           => $diff < 0 ? abs($diff) : 0, // jika debit kurang → tambah debit
+                    'credit'          => $diff > 0 ? $diff : 0,      // jika credit kurang → tambah credit
+                    'cost_center_id'  => null,
+                    'memo'            => 'Auto balancing (rounding)',
+                ]);
+                // hitung ulang
+                $sumD = round($tx->details()->sum('debit'), 2);
+                $sumC = round($tx->details()->sum('credit'), 2);
+            }
+
+            // Update header dari detail (pasti balanced here)
+            $rate = (float)($tx->exchange_rate ?? 1);
+            $tx->forceFill([
+                'total_debit'       => $sumD,
+                'total_credit'      => $sumC,
+                'total_debit_base'  => round($sumD * $rate, 2),
+                'total_credit_base' => round($sumC * $rate, 2),
+            ])->save();
         });
     }
 }
