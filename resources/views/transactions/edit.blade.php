@@ -327,7 +327,7 @@
 
 {{-- Simple helpers --}}
 <script>
-document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {
     const tableBody  = document.querySelector('#lines-table tbody');
     const addBtn     = document.getElementById('add-line');
     const recalcBtn  = document.getElementById('recalc');
@@ -351,28 +351,36 @@ document.addEventListener('DOMContentLoaded', () => {
     function recalc() {
         let d = 0, c = 0, lines = 0;
         tableBody.querySelectorAll('tr').forEach(tr => {
-            const dv = parseFloat(tr.querySelector('.details-debit')?.value || 0);
-            const cr = parseFloat(tr.querySelector('.details-credit')?.value || 0);
-            if (dv > 0 || cr > 0) lines++;
-            d += dv; c += cr;
+        const dv = parseFloat(tr.querySelector('.details-debit')?.value || 0);
+        const cr = parseFloat(tr.querySelector('.details-credit')?.value || 0);
+        if (dv > 0 || cr > 0) lines++;
+        d += dv; c += cr;
         });
 
-        const rate = parseFloat(exRateEl?.value || 1);
-        const dBase = d * rate, cBase = c * rate;
+        // Bulatkan ke 2 desimal untuk tampilan
+        const d2 = Math.round(d * 100) / 100;
+        const c2 = Math.round(c * 100) / 100;
 
-        sumDebitEl.textContent   = d.toFixed(2);
-        sumCreditEl.textContent  = c.toFixed(2);
-        sumExrateEl.textContent  = rate > 0 ? rate : 1;
-        sumDebitBEl.textContent  = dBase.toFixed(2);
-        sumCreditBEl.textContent = cBase.toFixed(2);
+        const rate = parseFloat(exRateEl?.value || 1) || 1;
+        const dBase = d2 * rate, cBase = c2 * rate;
 
-        const diff = d - c;
-        balanceDeltaEl.textContent = (diff === 0 && d > 0 && lines >= 2)
-            ? '(Balanced)'
-            : `(Diff: ${diff.toFixed(2)} | Lines: ${lines})`;
-        balanceDeltaEl.className = (diff === 0 && d > 0 && lines >= 2) ? 'text-success' : 'text-danger';
+        sumDebitEl.textContent   = d2.toFixed(2);
+        sumCreditEl.textContent  = c2.toFixed(2);
+        sumExrateEl.textContent  = rate;
+        sumDebitBEl.textContent  = (Math.round(dBase * 100) / 100).toFixed(2);
+        sumCreditBEl.textContent = (Math.round(cBase * 100) / 100).toFixed(2);
 
-        submitBtn.disabled = !(diff === 0 && d > 0 && lines >= 2);
+        // Pakai epsilon agar -0.00 dianggap 0
+        const EPS = 0.005; // toleransi 0.5 cent
+        const diff = d2 - c2;
+        const isBalanced = Math.abs(diff) < EPS && d2 > 0 && lines >= 2;
+
+        balanceDeltaEl.textContent = isBalanced
+        ? '(Balanced)'
+        : `(Diff: ${diff.toFixed(2)} | Lines: ${lines})`;
+        balanceDeltaEl.className = isBalanced ? 'text-success' : 'text-danger';
+
+        submitBtn.disabled = !isBalanced;
     }
 
     function enforceOneSided(tr, changedEl) {
@@ -390,24 +398,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tableBody.addEventListener('click', (e) => {
         if (e.target.closest('.remove-line')) {
-            e.target.closest('tr')?.remove();
-            recalc();
+        e.target.closest('tr')?.remove();
+        recalc();
         }
     });
 
     tableBody.addEventListener('input', (e) => {
         if (e.target.classList.contains('money-field')) {
-            enforceOneSided(e.target.closest('tr'), e.target);
-            recalc();
+        enforceOneSided(e.target.closest('tr'), e.target);
+        recalc();
         }
     });
 
     exRateEl?.addEventListener('input', recalc);
     recalcBtn?.addEventListener('click', recalc);
-
-    // initial
     recalc();
-});
+    });
 </script>
 
 <style>

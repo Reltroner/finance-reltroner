@@ -34,6 +34,45 @@
         display: none !important;
     }
 }
+
+/* Tambahan untuk hilangkan gambar abu-abu */
+.card-body > img,
+.card-body > svg {
+    display: none !important;
+}
+.card-body {
+    background-image: none !important;
+}
+
+/* Matikan SEMUA dekorasi pseudo-element Mazer di area konten */
+body::before, body::after,
+#app::before, #app::after,
+#main::before, #main::after,
+.page-heading::before, .page-heading::after,
+.page-content::before, .page-content::after,
+.section::before, .section::after,
+.card::before, .card::after,
+.card-body::before, .card-body::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+    background-image: none !important;
+}
+
+/* Buang kemungkinan background-image yang disetel di container */
+body, #app, #main, .page-heading, .page-content, .section, .card, .card-body {
+    background: #fff !important;
+    background-image: none !important;
+    background-repeat: no-repeat !important;
+    background-size: 0 0 !important;
+    box-shadow: none;
+}
+
+/* Jaga area tabel/pagination tetap bersih */
+.table-responsive, .card-body {
+    overflow: visible !important;
+}
+
 </style>
 <head>
     <meta charset="UTF-8">
@@ -49,7 +88,6 @@
     <link rel="stylesheet" href="{{ asset('mazer/assets/extensions/simple-datatables/style.css') }}">
     <link rel="stylesheet" href="{{ asset('mazer/assets/extensions/@icon/dripicons/dripicons.css') }}">
     <link rel="stylesheet" href="{{ asset('mazer/assets/compiled/css/ui-icons-dripicons.css') }}">
-    <link rel="stylesheet" href="{{ asset('mazer/table-datatable.html') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" >
 </head>
 
@@ -109,6 +147,12 @@
                 <a href="{{ route('transactions.index') }}" class="sidebar-link">
                     <i class="bi bi-wallet2"></i>
                     <span>Transactions</span>
+                </a>
+            </li>
+            <li class="sidebar-item {{ request()->is('transaction-details*') ? 'active' : '' }}">
+                <a href="{{ route('transaction-details.index') }}" class="sidebar-link">
+                    <i class="bi bi-journal-text"></i>
+                    <span>Journal Lines</span>
                 </a>
             </li>
             <li class="sidebar-item {{ request()->is('accounts*') ? 'active' : '' }}">

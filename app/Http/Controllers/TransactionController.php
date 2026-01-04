@@ -146,8 +146,9 @@ class TransactionController extends Controller
             ]);
 
             // Insert details
-            $payload = $lines->map(function ($l) {
+            $payload = $lines->values()->map(function ($l, $i) {
                 return [
+                    'line_no'        => $i + 1,                // <= penting
                     'account_id'     => $l['account_id'],
                     'debit'          => (float)($l['debit']  ?? 0),
                     'credit'         => (float)($l['credit'] ?? 0),
@@ -294,8 +295,10 @@ class TransactionController extends Controller
                 // Replace
                 $transaction->details()->delete();
 
-                $payload = $lines->map(function ($l) {
+                // UPDATE: saat replace details
+                $payload = $lines->values()->map(function ($l, $i) {
                     return [
+                        'line_no'        => $i + 1,                // <= penting
                         'account_id'     => $l['account_id'],
                         'debit'          => (float)($l['debit']  ?? 0),
                         'credit'         => (float)($l['credit'] ?? 0),

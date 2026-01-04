@@ -5,28 +5,31 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use App\Models\TransactionDetail;
+use App\Models\Currency;
+use App\Models\Account;
+use App\Models\CostCenter;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class TransactionDetailController extends Controller
 {
     /**
-     * List transaction details (JSON) + filters umum untuk ledger/report.
-     *
-     * Filters:
-     * - transaction_id, account_id, cost_center_id
-     * - date_from, date_to (via transactions.date)
-     * - status (via transactions.status)
-     * - reference (via transactions.reference like)
+     * Index untuk halaman transaction-details.index (menampilkan daftar transaksi dengan filter
+     * seperti di view kamu).
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $perPage = (int) $request->integer('per_page', 20);
 
-        $query = TransactionDetail::query()
-            ->with(['transaction:id,date,reference,status,exchange_rate,currency_id', 'account:id,code,name', 'costCenter:id,name'])
+        $details = TransactionDetail::query()
+            ->with([
+                'transaction:id,journal_no,reference,status,date,currency_id,exchange_rate',
+                'transaction.currency:id,code,name',
+                'account:id,code,name',
+                'costCenter:id,name',
+            ])
+            // filter by own columns
             ->when($request->filled('transaction_id'), fn($q) => $q->where('transaction_id', $request->transaction_id))
             ->when($request->filled('account_id'), fn($q) => $q->where('account_id', $request->account_id))
             ->when($request->filled('cost_center_id'), fn($q) => $q->where('cost_center_id', $request->cost_center_id))
@@ -34,99 +37,104 @@ class TransactionDetailController extends Controller
             ->when($request->filled('max_debit'), fn($q) => $q->where('debit', '<=', $request->max_debit))
             ->when($request->filled('min_credit'), fn($q) => $q->where('credit', '>=', $request->min_credit))
             ->when($request->filled('max_credit'), fn($q) => $q->where('credit', '<=', $request->max_credit))
-            // filters dari header transaksi
-            ->when($request->filled('status'), fn($q) => $q->whereHas('transaction', fn($qq) => $qq->where('status', $request->status)))
-            ->when($request->filled('reference'), fn($q) => $q->whereHas('transaction', fn($qq) => $qq->where('reference', 'like', '%'.$request->reference.'%')))
-            ->when($request->filled('date_from'), fn($q) => $q->whereHas('transaction', fn($qq) => $qq->whereDate('date', '>=', $request->date_from)))
-            ->when($request->filled('date_to'),   fn($q) => $q->whereHas('transaction', fn($qq) => $qq->whereDate('date', '<=', $request->date_to)));
-
-        $details = $query->orderBy('transaction_id')->orderBy('line_no')->orderBy('id')
+            ->when($request->filled('memo'), fn($q) => $q->where('memo', 'like', '%'.$request->memo.'%'))
+            // filter dari header transaksi
+            ->when($request->filled('status'), fn($q) =>
+                $q->whereHas('transaction', fn($t) => $t->where('status', $request->status))
+            )
+            ->when($request->filled('currency_id'), fn($q) =>
+                $q->whereHas('transaction', fn($t) => $t->where('currency_id', $request->currency_id))
+            )
+            ->when($request->filled('date_from'), fn($q) =>
+                $q->whereHas('transaction', fn($t) => $t->whereDate('date', '>=', $request->date_from))
+            )
+            ->when($request->filled('date_to'), fn($q) =>
+                $q->whereHas('transaction', fn($t) => $t->whereDate('date', '<=', $request->date_to))
+            )
+            ->orderByDesc(
+                Transaction::select('date')->whereColumn('transactions.id', 'transaction_details.transaction_id')
+            )
+            ->orderBy('transaction_id')
+            ->orderBy('line_no')
+            ->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
 
-        return response()->json($details);
+        // data dropdown/filter
+        $transactionsLite = Transaction::select('id', 'journal_no')
+            ->orderByDesc('date')->limit(200)->get();
+        $accounts    = Account::orderBy('code')->orderBy('name')->get(['id','code','name']);
+        $costcenters = CostCenter::orderBy('name')->get(['id','name']);
+        $currencies  = Currency::orderBy('code')->get(['id','code','name']);
+
+        return view('transaction-details.index', compact(
+            'details', 'transactionsLite', 'accounts', 'costcenters', 'currencies'
+        ));
     }
 
     /**
-     * Create a new detail line (JSON).
-     * - Validasi one-sided
-     * - Optional line_no (auto oleh model kalau tidak dikirim)
-     * - Recalculate totals pada header
+     * Form create line (kamu pakai view yang mem‐POST ke transactions.store — tetap dilayani).
+     * Menyediakan master data yang dibutuhkan oleh view.
      */
-    public function store(Request $request): JsonResponse
+    public function create()
     {
-        // validasi dasar
-        $baseRules = [
-            'transaction_id' => ['required', 'exists:transactions,id'],
-            'line_no'        => ['nullable', 'integer', 'min:1'],
-            'account_id'     => ['required', 'exists:accounts,id'],
-            'debit'          => ['required', 'numeric', 'min:0'],
-            'credit'         => ['required', 'numeric', 'min:0'],
-            'cost_center_id' => ['nullable', 'exists:cost_centers,id'],
-            'memo'           => ['nullable', 'string', 'max:255'],
-        ];
+        $currencies  = Currency::orderBy('code')->get();
+        $accounts    = Account::orderBy('code')->orderBy('name')->get();
+        $costcenters = CostCenter::orderBy('name')->get();
 
-        // Unique line_no per transaction jika line_no diisi
-        if ($request->filled('line_no') && $request->filled('transaction_id')) {
-            $baseRules['line_no'][] = Rule::unique('transaction_details')
-                ->where('transaction_id', $request->transaction_id);
-        }
-
-        $validated = $request->validate($baseRules);
-
-        // Custom rule: one-sided per line
-        $debit  = (float) $validated['debit'];
-        $credit = (float) $validated['credit'];
-        if (($debit > 0 && $credit > 0) || ($debit <= 0 && $credit <= 0)) {
-            return response()->json([
-                'message' => 'Each line must be one-sided: either debit OR credit, and > 0.',
-                'errors'  => ['debit' => ['One-sided rule violated'], 'credit' => ['One-sided rule violated']],
-            ], 422);
-        }
-
-        $detail = null;
-
-        DB::transaction(function () use (&$detail, $validated) {
-            $detail = TransactionDetail::create($validated);
-            $this->recalcHeader($detail->transaction_id);
-        });
-
-        return response()->json([
-            'message' => 'Transaction detail created successfully!',
-            'data'    => $detail->load(['transaction', 'account', 'costCenter']),
-        ], 201);
+        return view('transaction-details.create', compact('currencies', 'accounts', 'costcenters'));
     }
 
     /**
-     * Show detail line (JSON).
+     * Tampilkan 1 baris jurnal (detail) sesuai dengan view transaction-details.show.
      */
-    public function show(TransactionDetail $transactionDetail): JsonResponse
+    public function show(TransactionDetail $transactionDetail)
     {
-        $transactionDetail->load(['transaction', 'account', 'costCenter']);
-        return response()->json($transactionDetail);
+        $transactionDetail->load(['transaction.currency', 'account', 'costCenter']);
+        $detail      = $transactionDetail;
+        $transaction = $transactionDetail->transaction;
+
+        return view('transaction-details.show', compact('detail', 'transaction'));
     }
 
     /**
-     * Update a detail line (JSON).
-     * - Validasi one-sided
-     * - Jaga unique line_no per transaction
-     * - Recalculate totals pada header
+     * Form edit 1 baris jurnal (detail). View ini menampilkan header ringkas + tabel baris
+     * dan mem‐POST ke transactions.update (sesuai template kamu) ATAU bisa dipakai untuk submit ke route detail.update.
      */
-    public function update(Request $request, TransactionDetail $transactionDetail): JsonResponse
+    public function edit(TransactionDetail $transactionDetail)
     {
+        $transactionDetail->load(['transaction.currency', 'account', 'costCenter']);
+        $transaction = $transactionDetail->transaction;
+
+        $currencies  = Currency::orderBy('code')->get();
+        $accounts    = Account::orderBy('code')->orderBy('name')->get();
+        $costcenters = CostCenter::orderBy('name')->get();
+
+        return view('transaction-details.edit', compact(
+            'transactionDetail', 'transaction', 'currencies', 'accounts', 'costcenters'
+        ));
+    }
+
+    /**
+     * Update 1 baris jurnal (detail) — menjaga aturan one-sided + unique line_no per transaksi,
+     * dan recalculation total header setelah perubahan.
+     */
+    public function update(Request $request, TransactionDetail $transactionDetail)
+    {
+        // aturan dasar
         $baseRules = [
             'transaction_id' => ['sometimes', 'required', 'exists:transactions,id'],
-            'line_no'        => ['sometimes', 'nullable', 'integer', 'min:1'],
+            'line_no'        => ['sometimes', 'nullable', 'integer', 'min:1', Rule::unique('transaction_details','line_no')
+        ->where(fn($q)=>$q->where('transaction_id',$request->transaction_id))],
             'account_id'     => ['sometimes', 'required', 'exists:accounts,id'],
             'debit'          => ['sometimes', 'required', 'numeric', 'min:0'],
             'credit'         => ['sometimes', 'required', 'numeric', 'min:0'],
             'cost_center_id' => ['sometimes', 'nullable', 'exists:cost_centers,id'],
             'memo'           => ['sometimes', 'nullable', 'string', 'max:255'],
         ];
-
         $validated = $request->validate($baseRules);
 
-        // Unique line_no per transaction jika diubah/ada di payload
+        // Unique line_no per transaction (jika diubah/ada)
         if (array_key_exists('line_no', $validated)) {
             $txIdForUnique = (int)($validated['transaction_id'] ?? $transactionDetail->transaction_id);
             if (!empty($validated['line_no'])) {
@@ -135,40 +143,42 @@ class TransactionDetailController extends Controller
                         Rule::unique('transaction_details', 'line_no')
                             ->where('transaction_id', $txIdForUnique)
                             ->ignore($transactionDetail->id),
-                    ]
+                    ],
                 ]);
             }
         }
 
-        // One-sided check jika salah satu sisi berubah
+        // One-sided guard (pakai nilai baru jika ada, jika tidak pakai nilai lama)
         $debit  = array_key_exists('debit', $validated)  ? (float)$validated['debit']  : (float)$transactionDetail->debit;
         $credit = array_key_exists('credit', $validated) ? (float)$validated['credit'] : (float)$transactionDetail->credit;
         if (($debit > 0 && $credit > 0) || ($debit <= 0 && $credit <= 0)) {
-            return response()->json([
-                'message' => 'Each line must be one-sided: either debit OR credit, and > 0.',
-                'errors'  => ['debit' => ['One-sided rule violated'], 'credit' => ['One-sided rule violated']],
-            ], 422);
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'details' => 'Each line must be one-sided: either debit OR credit, and > 0.',
+                    'debit'   => 'One-sided rule violated.',
+                    'credit'  => 'One-sided rule violated.',
+                ]);
         }
 
         $oldTxId = $transactionDetail->transaction_id;
 
         DB::transaction(function () use ($validated, $transactionDetail, $oldTxId) {
             $transactionDetail->update($validated);
-            // Recalc lama & baru jika pindah transaksi
+            // Recalc header lama & baru jika pindah transaksi
             $this->recalcHeader($oldTxId);
             $this->recalcHeader($transactionDetail->transaction_id);
         });
 
-        return response()->json([
-            'message' => 'Transaction detail updated successfully!',
-            'data'    => $transactionDetail->load(['transaction', 'account', 'costCenter']),
-        ]);
+        return redirect()
+            ->route('transaction-details.show', $transactionDetail->id)
+            ->with('success', 'Journal line updated successfully!');
     }
 
     /**
-     * Soft delete a detail line + recalc header.
+     * Hapus (soft delete) 1 baris jurnal + recalculation header.
      */
-    public function destroy(TransactionDetail $transactionDetail): JsonResponse
+    public function destroy(TransactionDetail $transactionDetail)
     {
         $txId = $transactionDetail->transaction_id;
 
@@ -177,15 +187,17 @@ class TransactionDetailController extends Controller
             $this->recalcHeader($txId);
         });
 
-        return response()->json(['message' => 'Transaction detail deleted successfully!']);
+        return redirect()
+            ->route('transaction-details.index')
+            ->with('success', 'Journal line deleted successfully!');
     }
 
     /**
-     * Recalculate header totals (total_debit/credit + base) untuk sebuah transaksi.
+     * Utility: hitung ulang total di header transaksi (amount + base).
      */
     protected function recalcHeader(int $transactionId): void
     {
-        /** @var Transaction $tx */
+        /** @var Transaction|null $tx */
         $tx = Transaction::query()->lockForUpdate()->find($transactionId);
         if (!$tx) return;
 
