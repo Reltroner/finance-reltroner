@@ -1,5 +1,5 @@
 <?php
-// routes/web.php
+// routes/web.php (Finance Module)
 
 use Illuminate\Support\Facades\Route;
 
@@ -26,12 +26,12 @@ use App\Http\Middleware\EnsureGatewayAuthenticated;
 
 /*
 |--------------------------------------------------------------------------
-| Finance Reltroner — Web Routes
+| Finance Reltroner — Web Routes (PHASE 3)
 |--------------------------------------------------------------------------
 | Context:
-| - Subdomain: finance.reltroner.*
-| - Auth handled ONLY via Reltroner Auth Gateway
-| - No direct Keycloak interaction
+| - Module: Finance
+| - Auth: Reltroner Gateway ONLY
+| - No direct Keycloak usage
 | - No Laravel Auth::login()
 |--------------------------------------------------------------------------
 */
@@ -39,10 +39,10 @@ use App\Http\Middleware\EnsureGatewayAuthenticated;
 
 /*
 |--------------------------------------------------------------------------
-| SSO Entry Point (UNPROTECTED)
+| SSO ENTRY POINT (PUBLIC)
 |--------------------------------------------------------------------------
-| - One-time entry from Gateway
-| - Validates signed RMAT token
+| - Single-use entry from Gateway
+| - Verifies RMAT (JWT)
 | - Creates finance-local session
 |--------------------------------------------------------------------------
 */
@@ -52,21 +52,23 @@ Route::get('/sso/consume', [ConsumeController::class, 'consume'])
 
 /*
 |--------------------------------------------------------------------------
-| Root Redirect
+| ROOT ACCESS
 |--------------------------------------------------------------------------
-| - Finance has no public landing page
-| - All access goes through /dashboard
+| - Finance has NO public landing page
+| - Root always resolves to dashboard
 |--------------------------------------------------------------------------
 */
-Route::redirect('/', '/dashboard');
+Route::get('/', function () {
+    return redirect()->route('dashboard.index');
+});
 
 
 /*
 |--------------------------------------------------------------------------
-| Protected Finance Area
+| PROTECTED FINANCE AREA
 |--------------------------------------------------------------------------
 | - Requires finance-local session
-| - Enforced by EnsureGatewayAuthenticated
+| - Enforced strictly by EnsureGatewayAuthenticated
 |--------------------------------------------------------------------------
 */
 Route::middleware(['web', EnsureGatewayAuthenticated::class])
@@ -116,22 +118,24 @@ Route::middleware(['web', EnsureGatewayAuthenticated::class])
 
         /*
         |--------------------------------------------------------------------------
-        | Attachments
+        | Attachments Download
         |--------------------------------------------------------------------------
         */
-        Route::get('attachments/{attachment}/download', [AttachmentController::class, 'download'])
-            ->name('attachments.download');
+        Route::get(
+            'attachments/{attachment}/download',
+            [AttachmentController::class, 'download']
+        )->name('attachments.download');
 
 
         /*
         |--------------------------------------------------------------------------
-        | Internal Dashboard API (OPTIONAL)
+        | Internal Dashboard API (NON-PUBLIC)
         |--------------------------------------------------------------------------
-        | - Digunakan oleh Blade / JS dashboard
-        | - BUKAN public API
+        | - For Blade / JS dashboard only
+        | - NOT a public API
         |--------------------------------------------------------------------------
         */
-        Route::get('/api/dashboard-summary', function () {
+        Route::get('/_internal/dashboard-summary', function () {
             return response()->json([
                 'assets'      => 120000,
                 'liabilities' => 50000,
@@ -139,6 +143,6 @@ Route::middleware(['web', EnsureGatewayAuthenticated::class])
                 'profit'      => [15000, 12000, 18000, 20000, 17000, 21000],
                 'loss'        => [2000, 1000, 3000, 2500, 1500, 1800],
             ]);
-        })->name('api.dashboard.summary');
+        })->name('internal.dashboard.summary');
 
     });
