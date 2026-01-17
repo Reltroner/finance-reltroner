@@ -59,7 +59,7 @@ Route::get('/sso/consume', [ConsumeController::class, 'consume'])
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
-    return redirect()->route('dashboard.index');
+    return redirect()->route('dashboard');
 });
 
 
@@ -80,6 +80,9 @@ Route::middleware(['web', EnsureGatewayAuthenticated::class])
         |--------------------------------------------------------------------------
         */
         Route::get('/dashboard', [DashboardController::class, 'index'])
+            ->name('dashboard');
+
+        Route::get('/dashboard/index', [DashboardController::class, 'index'])
             ->name('dashboard.index');
 
 

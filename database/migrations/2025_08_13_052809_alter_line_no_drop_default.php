@@ -1,8 +1,9 @@
 <?php
-
+// database/migrations/2025_08_13_052809_alter_line_no_drop_default.php
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 
 return new class extends Migration
 {
@@ -11,10 +12,16 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // MySQL: ubah kolom tanpa DEFAULT
+        if (DB::getDriverName() === 'sqlite') {
+            // SQLite does not support MODIFY COLUMN
+            // Do nothing – column already exists and is usable
+            return;
+        }
+
         DB::statement("
             ALTER TABLE transaction_details
-            MODIFY line_no SMALLINT UNSIGNED NOT NULL COMMENT 'Line order within a transaction'
+            MODIFY line_no SMALLINT UNSIGNED NOT NULL
+            COMMENT 'Line order within a transaction'
         ");
     }
 
@@ -23,9 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::statement("
-            ALTER TABLE transaction_details
-            MODIFY line_no SMALLINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Line order within a transaction'
-        ");
+        
     }
 };

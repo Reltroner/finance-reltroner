@@ -1,26 +1,36 @@
 <?php
-// app/Database/Factories/AccountFactory.php
+// database/factories/AccountFactory.php
+
 namespace Database\Factories;
 
 use App\Models\Account;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Account>
- */
 class AccountFactory extends Factory
 {
     protected $model = Account::class;
 
-    public function definition()
+    public function definition(): array
     {
-        $type = $this->faker->randomElement(['asset', 'liability', 'equity', 'income', 'expense']);
+        $type = $this->faker->randomElement([
+            'asset',
+            'liability',
+            'equity',
+            'income',
+            'expense',
+        ]);
+
+        $normalBalance = in_array($type, ['asset', 'expense'])
+            ? 'debit'
+            : 'credit';
+
         return [
-            'code' => $this->faker->unique()->numerify('###.##'),
-            'name' => $this->faker->words(2, true),
-            'type' => $type,
-            'parent_id' => null, // Bisa dihubungkan nanti secara manual
-            'is_active' => true,
+            'code'           => $this->faker->unique()->numerify('###.##'),
+            'name'           => $this->faker->words(2, true),
+            'type'           => $type,
+            'normal_balance' => $normalBalance,
+            'parent_id'      => null,
+            'is_active'      => true,
         ];
     }
 }

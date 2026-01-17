@@ -16,63 +16,77 @@ use App\Models\CostCenter;
 
 class TransactionSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         DB::transaction(function () {
 
-            /** =========================
-             *  1) Master minimal
-             *  ========================= */
-            // Currency (pastikan ada setidaknya 1)
+            /**
+             * =========================================================
+             * 1) MASTER DATA (STRICT & DOMAIN-SAFE)
+             * =========================================================
+             */
+
+            // ---- Currency (minimal set)
             if (Currency::count() === 0) {
-                // Kalau kamu punya seeder/fixture currency sendiri, boleh di-skip bagian ini.
                 Currency::factory()->create(['code' => 'IDR', 'name' => 'Rupiah', 'symbol' => 'Rp']);
                 Currency::factory()->create(['code' => 'USD', 'name' => 'US Dollar', 'symbol' => '$']);
                 Currency::factory()->create(['code' => 'EUR', 'name' => 'Euro', 'symbol' => '€']);
             }
 
-            // Account (kode umum agar ledger enak dibaca)
-            $mustHaveAccounts = [
-                ['code' => '1001', 'name' => 'Cash'],
-                ['code' => '1101', 'name' => 'Bank'],
-                ['code' => '1201', 'name' => 'Accounts Receivable'],
-                ['code' => '1301', 'name' => 'Prepaid Expense'],
-                ['code' => '1401', 'name' => 'Fixed Assets'],
-                ['code' => '2001', 'name' => 'Accounts Payable'],
-                ['code' => '4001', 'name' => 'Sales Revenue'],
-                ['code' => '5001', 'name' => 'COGS'],
-                ['code' => '5101', 'name' => 'Salary Expense'],
-                ['code' => '5201', 'name' => 'Rent Expense'],
-                ['code' => '5301', 'name' => 'Utilities Expense'],
-                ['code' => '5401', 'name' => 'Depreciation Expense'],
+            // ---- Chart of Accounts (WAJIB type)
+            $chartOfAccounts = [
+                ['code' => '1001', 'name' => 'Cash',                'type' => 'asset',     'normal_balance' => 'debit'],
+                ['code' => '1101', 'name' => 'Bank',                'type' => 'asset',     'normal_balance' => 'debit'],
+                ['code' => '1201', 'name' => 'Accounts Receivable', 'type' => 'asset',     'normal_balance' => 'debit'],
+                ['code' => '1301', 'name' => 'Prepaid Expense',     'type' => 'asset',     'normal_balance' => 'debit'],
+                ['code' => '1401', 'name' => 'Fixed Assets',        'type' => 'asset',     'normal_balance' => 'debit'],
+
+                ['code' => '2001', 'name' => 'Accounts Payable',    'type' => 'liability', 'normal_balance' => 'credit'],
+
+                ['code' => '4001', 'name' => 'Sales Revenue',       'type' => 'income',    'normal_balance' => 'credit'],
+
+                ['code' => '5001', 'name' => 'COGS',                'type' => 'expense',   'normal_balance' => 'debit'],
+                ['code' => '5101', 'name' => 'Salary Expense',      'type' => 'expense',   'normal_balance' => 'debit'],
+                ['code' => '5201', 'name' => 'Rent Expense',        'type' => 'expense',   'normal_balance' => 'debit'],
+                ['code' => '5301', 'name' => 'Utilities Expense',   'type' => 'expense',   'normal_balance' => 'debit'],
+                ['code' => '5401', 'name' => 'Depreciation Expense','type' => 'expense',   'normal_balance' => 'debit'],
             ];
 
-            foreach ($mustHaveAccounts as $a) {
-                Account::firstOrCreate(['code' => $a['code']], ['name' => $a['name']]);
+            foreach ($chartOfAccounts as $acc) {
+                Account::firstOrCreate(
+                    ['code' => $acc['code']],
+                    [
+                        'name'           => $acc['name'],
+                        'type'           => $acc['type'],
+                        'normal_balance' => $acc['normal_balance'],
+                        'is_active'      => true,
+                    ]
+                );
             }
 
-            // Cost Center (opsional, tapi bermanfaat untuk contoh)
+            // ---- Cost Centers
             if (CostCenter::count() === 0) {
-                CostCenter::create(['name' => 'Head Office']);
-                CostCenter::create(['name' => 'Sales']);
-                CostCenter::create(['name' => 'Production']);
-                CostCenter::create(['name' => 'R&D']);
+                CostCenter::insert([
+                    ['name' => 'Head Office'],
+                    ['name' => 'Sales'],
+                    ['name' => 'Production'],
+                    ['name' => 'R&D'],
+                ]);
             }
 
-            /** =========================
-             *  2) Generate transactions
-             *  ========================= */
+            /**
+             * =========================================================
+             * 2) GENERATE TRANSACTIONS (FACTORY-DRIVEN)
+             * =========================================================
+             */
+
             $currencyIds = Currency::pluck('id')->all();
 
-            // 24 posted, 12 draft (total 36) dengan lines 2..6
-            $totalPosted = 24;
-            $totalDraft  = 12;
+            $postedCount = 24;
+            $draftCount  = 12;
 
-            // Posted
-            for ($i = 0; $i < $totalPosted; $i++) {
+            // ---- Posted Transactions
+            for ($i = 0; $i < $postedCount; $i++) {
                 Transaction::factory()
                     ->state([
                         'currency_id' => Arr::random($currencyIds),
@@ -82,8 +96,8 @@ class TransactionSeeder extends Seeder
                     ->create();
             }
 
-            // Draft
-            for ($i = 0; $i < $totalDraft; $i++) {
+            // ---- Draft Transactions
+            for ($i = 0; $i < $draftCount; $i++) {
                 Transaction::factory()
                     ->state([
                         'currency_id' => Arr::random($currencyIds),
@@ -93,34 +107,37 @@ class TransactionSeeder extends Seeder
                     ->create();
             }
 
-            /** =========================
-             *  3) Contoh jurnal reversal
-             *  =========================
-             *  Ambil 3 jurnal posted secara acak dan buat jurnal pembaliknya.
+            /**
+             * =========================================================
+             * 3) REVERSAL JOURNAL (AKUNTANSI VALID)
+             * =========================================================
              */
-            $toReverse = Transaction::posted()->inRandomOrder()->take(3)->get();
+
+            $toReverse = Transaction::posted()
+                ->inRandomOrder()
+                ->take(3)
+                ->get();
 
             foreach ($toReverse as $orig) {
-                // Buat header reversal (tanggal +1 hari; periode otomatis mengikuti accessor/model)
-                $revDate   = Carbon::parse($orig->date)->addDay();
-                $exRate    = (float)($orig->exchange_rate ?: 1);
+                $revDate = Carbon::parse($orig->date)->addDay();
+                $rate    = (float) ($orig->exchange_rate ?: 1);
 
                 $rev = Transaction::create([
                     'journal_no'        => Transaction::generateJournalNo(
-                        (int)$revDate->format('Y'),
-                        (int)$revDate->format('n')
+                        (int) $revDate->format('Y'),
+                        (int) $revDate->format('n')
                     ),
-                    'reference'         => $orig->reference ? $orig->reference.'-REV' : null,
-                    'description'       => 'Reversal of '.$orig->journal_no,
+                    'reference'         => $orig->reference ? $orig->reference . '-REV' : null,
+                    'description'       => 'Reversal of ' . $orig->journal_no,
                     'date'              => $revDate->toDateString(),
-                    'fiscal_year'       => (int)$revDate->format('Y'),
-                    'fiscal_period'     => (int)$revDate->format('n'),
+                    'fiscal_year'       => (int) $revDate->format('Y'),
+                    'fiscal_period'     => (int) $revDate->format('n'),
                     'currency_id'       => $orig->currency_id,
-                    'exchange_rate'     => $exRate,
-                    'total_debit'       => $orig->total_credit,           // dibalik
-                    'total_credit'      => $orig->total_debit,            // dibalik
-                    'total_debit_base'  => round($orig->total_credit * $exRate, 2),
-                    'total_credit_base' => round($orig->total_debit  * $exRate, 2),
+                    'exchange_rate'     => $rate,
+                    'total_debit'       => $orig->total_credit,
+                    'total_credit'      => $orig->total_debit,
+                    'total_debit_base'  => round($orig->total_credit * $rate, 2),
+                    'total_credit_base' => round($orig->total_debit  * $rate, 2),
                     'status'            => 'posted',
                     'posted_at'         => now(),
                     'posted_by'         => 1,
@@ -128,16 +145,14 @@ class TransactionSeeder extends Seeder
                     'created_by'        => 1,
                 ]);
 
-                // Copy detail dengan debit/credit ditukar
-                $details = $orig->details()->get();
-                foreach ($details as $d) {
+                foreach ($orig->details as $d) {
                     TransactionDetail::create([
-                        'transaction_id'  => $rev->id,
-                        'account_id'      => $d->account_id,
-                        'debit'           => (float)$d->credit,
-                        'credit'          => (float)$d->debit,
-                        'cost_center_id'  => $d->cost_center_id,
-                        'memo'            => 'REV: '.($d->memo ?? ''),
+                        'transaction_id' => $rev->id,
+                        'account_id'     => $d->account_id,
+                        'debit'          => (float) $d->credit,
+                        'credit'         => (float) $d->debit,
+                        'cost_center_id' => $d->cost_center_id,
+                        'memo'           => 'REV: ' . ($d->memo ?? ''),
                     ]);
                 }
             }

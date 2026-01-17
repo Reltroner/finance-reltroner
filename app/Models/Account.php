@@ -1,5 +1,6 @@
 <?php
 // app/Models/Account.php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -10,7 +11,40 @@ class Account extends Model
 {
     use HasFactory, SoftDeletes;
 
-    protected $fillable = ['code', 'name', 'type', 'parent_id', 'is_active'];
+    protected $fillable = [
+        'code',
+        'name',
+        'type',
+        'normal_balance',
+        'parent_id',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    /**
+     * Fallback normal balance (legacy safety only)
+     * DB tetap sumber kebenaran
+     */
+    public function getEffectiveNormalBalance(): string
+    {
+        if ($this->normal_balance) {
+            return $this->normal_balance;
+        }
+
+        return match ($this->type) {
+            'asset', 'expense' => 'debit',
+            default            => 'credit',
+        };
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
     public function parent()
     {
@@ -32,5 +66,3 @@ class Account extends Model
         return $this->hasMany(Budget::class);
     }
 }
-
-// end of app/Models/Account.php

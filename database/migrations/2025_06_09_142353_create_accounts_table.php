@@ -6,26 +6,30 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('accounts', function (Blueprint $table) {
             $table->id();
             $table->string('code')->unique();
             $table->string('name');
-            $table->enum('type', ['asset', 'liability', 'equity', 'income', 'expense']);
-            $table->foreignId('parent_id')->nullable()->constrained('accounts')->onDelete('set null');
+            $table->enum('type', [
+                'asset',
+                'liability',
+                'equity',
+                'income',
+                'expense',
+            ]);
+            $table->enum('normal_balance', ['debit', 'credit']);
+            $table->foreignId('parent_id')
+                ->nullable()
+                ->constrained('accounts')
+                ->nullOnDelete();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
             $table->softDeletes();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('accounts');
