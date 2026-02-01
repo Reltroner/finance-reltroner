@@ -13,126 +13,106 @@ use Illuminate\Http\Request;
 class PaymentController extends Controller
 {
     /**
-     * Display a listing of payments, with optional filters.
+     * READ-ONLY list of payments
+     * Tidak ada mutasi data (STEP 5.2B.4)
      */
     public function index(Request $request)
     {
-        $query = Payment::with(['invoice', 'vendor', 'customer', 'transaction']);
-
-        if ($request->filled('invoice_id')) {
-            $query->where('invoice_id', $request->input('invoice_id'));
-        }
-        if ($request->filled('vendor_id')) {
-            $query->where('vendor_id', $request->input('vendor_id'));
-        }
-        if ($request->filled('customer_id')) {
-            $query->where('customer_id', $request->input('customer_id'));
-        }
-        if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
-        }
-        if ($request->filled('date')) {
-            $query->whereDate('date', $request->input('date'));
-        }
-
-        $payments = $query->orderByDesc('date')->paginate(20);
-
-        // Data tambahan untuk filter & relasi select
-        $invoices = Invoice::all();
-        $vendors = Vendor::all();
-        $customers = Customer::all();
-        $transactions = Transaction::all();
-
-        return view('payments.index', compact('payments', 'invoices', 'vendors', 'customers', 'transactions'));
-    }
-
-    /**
-     * Show the form for creating a new payment.
-     */
-    public function create()
-    {
-        $invoices = Invoice::all();
-        $vendors = Vendor::all();
-        $customers = Customer::all();
-        $transactions = Transaction::all();
-        return view('payments.create', compact('invoices', 'vendors', 'customers', 'transactions'));
-    }
-
-    /**
-     * Store a newly created payment.
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'invoice_id'     => 'nullable|exists:invoices,id',
-            'vendor_id'      => 'nullable|exists:vendors,id',
-            'customer_id'    => 'nullable|exists:customers,id',
-            'transaction_id' => 'nullable|exists:transactions,id',
-            'amount'         => 'required|numeric|min:0',
-            'date'           => 'required|date',
-            'payment_method' => 'nullable|string|max:50',
-            'status'         => 'required|in:pending,cleared,failed',
-            'description'    => 'nullable|string|max:1000',
+        $query = Payment::with([
+            'invoice',
+            'vendor',
+            'customer',
+            'transaction',
         ]);
 
-        $payment = Payment::create($validated);
+        $query
+            ->when($request->filled('invoice_id'), fn($q) => $q->where('invoice_id', $request->invoice_id))
+            ->when($request->filled('vendor_id'), fn($q) => $q->where('vendor_id', $request->vendor_id))
+            ->when($request->filled('customer_id'), fn($q) => $q->where('customer_id', $request->customer_id))
+            ->when($request->filled('status'), fn($q) => $q->where('status', $request->status))
+            ->when($request->filled('date'), fn($q) => $q->whereDate('date', $request->date));
 
-        return redirect()->route('payments.index')
-            ->with('success', 'Payment created successfully!');
+        $payments = $query
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->paginate(20)
+            ->withQueryString();
+
+        // data untuk filter UI
+        return view('payments.index', [
+            'payments'     => $payments,
+            'invoices'     => Invoice::select('id')->limit(200)->get(),
+            'vendors'      => Vendor::select('id','name')->get(),
+            'customers'    => Customer::select('id','name')->get(),
+            'transactions' => Transaction::select('id','journal_no')->limit(200)->get(),
+        ]);
     }
 
     /**
-     * Display the specified payment.
+     * READ-ONLY show
      */
     public function show(Payment $payment)
     {
-        $payment->load(['invoice', 'vendor', 'customer', 'transaction']);
+        $payment->load([
+            'invoice',
+            'vendor',
+            'customer',
+            'transaction',
+        ]);
+
         return view('payments.show', compact('payment'));
     }
 
     /**
-     * Show the form for editing the specified payment.
+     * UI-only create page
+     * FORM TIDAK BOLEH submit ke controller ini
+     */
+    public function create()
+    {
+        return view('payments.create', [
+            'invoices'     => Invoice::all(),
+            'vendors'      => Vendor::all(),
+            'customers'    => Customer::all(),
+            'transactions' => Transaction::all(),
+        ]);
+    }
+
+    /**
+     * UI-only edit page
+     * Mutasi payment HARUS lewat PaymentService
      */
     public function edit(Payment $payment)
     {
-        $invoices = Invoice::all();
-        $vendors = Vendor::all();
-        $customers = Customer::all();
-        $transactions = Transaction::all();
-        return view('payments.edit', compact('payment', 'invoices', 'vendors', 'customers', 'transactions'));
-    }
+        $payment->load(['invoice', 'vendor', 'customer', 'transaction']);
 
-    /**
-     * Update the specified payment.
-     */
-    public function update(Request $request, Payment $payment)
-    {
-        $validated = $request->validate([
-            'invoice_id'     => 'nullable|exists:invoices,id',
-            'vendor_id'      => 'nullable|exists:vendors,id',
-            'customer_id'    => 'nullable|exists:customers,id',
-            'transaction_id' => 'nullable|exists:transactions,id',
-            'amount'         => 'sometimes|required|numeric|min:0',
-            'date'           => 'sometimes|required|date',
-            'payment_method' => 'nullable|string|max:50',
-            'status'         => 'sometimes|required|in:pending,cleared,failed',
-            'description'    => 'nullable|string|max:1000',
+        return view('payments.edit', [
+            'payment'      => $payment,
+            'invoices'     => Invoice::all(),
+            'vendors'      => Vendor::all(),
+            'customers'    => Customer::all(),
+            'transactions' => Transaction::all(),
         ]);
-
-        $payment->update($validated);
-
-        return redirect()->route('payments.index')
-            ->with('success', 'Payment updated successfully!');
     }
 
     /**
-     * Remove the specified payment from storage (soft delete).
+     * ================================
+     * WRITE OPERATIONS — FORBIDDEN
+     * ================================
+     * Semua mutasi pembayaran WAJIB lewat Service Layer
      */
-    public function destroy(Payment $payment)
-    {
-        $payment->delete();
 
-        return redirect()->route('payments.index')
-            ->with('success', 'Payment deleted successfully!');
+    public function store()
+    {
+        abort(403, 'Direct payment creation is forbidden. Use PaymentService.');
+    }
+
+    public function update()
+    {
+        abort(403, 'Direct payment mutation is forbidden. Use PaymentService.');
+    }
+
+    public function destroy()
+    {
+        abort(403, 'Direct payment deletion is forbidden. Use PaymentService.');
     }
 }

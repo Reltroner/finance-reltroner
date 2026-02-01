@@ -1,5 +1,5 @@
 <?php
-
+// app/Models/Transaction.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -10,6 +10,16 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 class Transaction extends Model
 {
     use HasFactory, SoftDeletes;
+
+     /* =======================
+     * Transaction Type Contract
+     * ======================= */
+
+    public const TYPE_GENERAL           = 'general';
+    public const TYPE_EQUITY_OPENING    = 'equity_opening';
+    public const TYPE_EQUITY_INJECTION  = 'equity_injection';
+    public const TYPE_PERIOD_CLOSING    = 'period_closing';
+    public const TYPE_SYSTEM_ADJUSTMENT = 'system_adjustment';
 
     protected $fillable = [
         // Identitas jurnal
@@ -28,7 +38,7 @@ class Transaction extends Model
         'total_debit_base', 'total_credit_base',
 
         // Status siklus jurnal
-        'status', 'posted_at', 'posted_by', 'voided_at', 'voided_by',
+        'status', 'type', 'posted_at', 'posted_by', 'voided_at', 'voided_by',
 
         // Jurnal pembalik
         'reversal_of_id',
@@ -50,6 +60,7 @@ class Transaction extends Model
         'total_credit_base' => 'decimal:2',
         'fiscal_year'       => 'integer',
         'fiscal_period'     => 'integer',
+        'type'              => 'string',
     ];
 
     /* =======================
@@ -138,6 +149,20 @@ class Transaction extends Model
             ->when($to,   fn($qq) => $qq->whereDate('date', '<=', $to));
     }
 
+    public function scopeType($q, string $type)
+    {
+        return $q->where('type', $type);
+    }
+
+    public function scopeEquity($q)
+    {
+        return $q->whereIn('type', [
+            self::TYPE_EQUITY_OPENING,
+            self::TYPE_EQUITY_INJECTION,
+            self::TYPE_PERIOD_CLOSING,
+        ]);
+    }
+
     /* =======================
      * Accessors / Helpers
      * ======================= */
@@ -177,6 +202,41 @@ class Transaction extends Model
     public function getBalanceDiffBaseAttribute(): float
     {
         return round((float)$this->total_debit_base - (float)$this->total_credit_base, 2);
+    }
+
+    /* =======================
+    * Transaction Type Helpers
+    * ======================= */
+
+    public function isGeneral(): bool
+    {
+        return $this->type === self::TYPE_GENERAL;
+    }
+
+    public function isEquityJournal(): bool
+    {
+        return in_array($this->type, [
+            self::TYPE_EQUITY_OPENING,
+            self::TYPE_EQUITY_INJECTION,
+            self::TYPE_PERIOD_CLOSING,
+        ], true);
+    }
+
+    public function isSystemJournal(): bool
+    {
+        return in_array($this->type, [
+            self::TYPE_PERIOD_CLOSING,
+            self::TYPE_SYSTEM_ADJUSTMENT,
+        ], true);
+    }
+
+    /**
+     * Apakah jurnal boleh diedit secara manual?
+     * Equity & system journal harus immutable.
+     */
+    public function isEditable(): bool
+    {
+        return !$this->isEquityJournal() && !$this->isSystemJournal();
     }
 
     /* =======================
