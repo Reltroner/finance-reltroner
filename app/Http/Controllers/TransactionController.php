@@ -70,7 +70,10 @@ class TransactionController extends Controller
      */
     public function store(TransactionStoreRequest $request)
     {
-        $this->transactionService->create($request);
+        $this->transactionService->create(
+            $request->validated(),
+            auth()->id()
+        );
 
         return redirect()
             ->route('transactions.index')
@@ -121,7 +124,11 @@ class TransactionController extends Controller
         TransactionUpdateRequest $request,
         Transaction $transaction
     ) {
-        $this->transactionService->update($transaction, $request);
+        $this->transactionService->update(
+            $transaction,
+            $request->validated(),
+            auth()->id()
+        );
 
         return redirect()
             ->route('transactions.index')

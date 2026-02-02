@@ -1,44 +1,49 @@
 <?php
 // app/Services/Accounting/TransactionService.php
+
 namespace App\Services\Accounting;
 
 use App\Models\Transaction;
-use App\Models\TransactionDetail;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Carbon;
 
 class TransactionService
 {
+    public function __construct(
+        protected TransactionGuard $guard
+    ) {}
+
     /**
-     * Create a new transaction (single source of truth).
-     *
-     * Fiscal Period Lock:
-     * - ENFORCED by TransactionObserver (STEP 5.2B.4)
+     * =========================================================
+     * CREATE (Single Source of Truth)
+     * =========================================================
      */
-    public function create(array $data, int $userId): Transaction
-    {
-        return DB::transaction(function () use ($data, $userId) {
+    public function create(
+        array $data,
+        int $userId,
+        bool $autoPost = false
+    ): Transaction {
+        return DB::transaction(function () use ($data, $userId, $autoPost) {
 
             $date   = Carbon::parse($data['date']);
             $year   = (int) $date->format('Y');
             $period = (int) $date->format('n');
 
+            // ---- GUARDS
+            $this->guard->assertPeriodWritable($year, $period, $data['type'] ?? null);
+            $this->guard->assertAccountUsable($data['details'], $data['type'] ?? null);
+
             $lines = collect($data['details']);
 
-            $sumDebit  = round($lines->sum(fn ($l) => (float) ($l['debit'] ?? 0)), 2);
+            $sumDebit  = round($lines->sum(fn ($l) => (float) ($l['debit']  ?? 0)), 2);
             $sumCredit = round($lines->sum(fn ($l) => (float) ($l['credit'] ?? 0)), 2);
 
-            $exchangeRate = isset($data['exchange_rate'])
-                ? (float) $data['exchange_rate']
-                : 1.0;
-
-            $sumDebitBase  = round($sumDebit  * $exchangeRate, 2);
-            $sumCreditBase = round($sumCredit * $exchangeRate, 2);
+            $exchangeRate = (float) ($data['exchange_rate'] ?? 1);
 
             $tx = Transaction::create([
                 'journal_no'        => Transaction::generateJournalNo($year, $period),
-                'reference'         => $data['reference']     ?? null,
-                'description'       => $data['description']   ?? null,
+                'reference'         => $data['reference']   ?? null,
+                'description'       => $data['description'] ?? null,
                 'date'              => $date,
                 'fiscal_year'       => $year,
                 'fiscal_period'     => $period,
@@ -46,27 +51,25 @@ class TransactionService
                 'exchange_rate'     => $exchangeRate,
                 'total_debit'       => $sumDebit,
                 'total_credit'      => $sumCredit,
-                'total_debit_base'  => $sumDebitBase,
-                'total_credit_base' => $sumCreditBase,
-                'status'            => $data['status'] ?? 'draft',
-                'type'              => $data['type']   ?? Transaction::TYPE_GENERAL,
+                'total_debit_base'  => round($sumDebit  * $exchangeRate, 2),
+                'total_credit_base' => round($sumCredit * $exchangeRate, 2),
+                'status'            => $autoPost ? 'posted' : ($data['status'] ?? 'draft'),
+                'type'              => $data['type'] ?? Transaction::TYPE_GENERAL,
                 'created_by'        => $userId,
             ]);
 
-            $payload = $lines->values()->map(function ($l, $i) {
-                return [
+            $tx->details()->createMany(
+                $lines->values()->map(fn ($l, $i) => [
                     'line_no'        => $i + 1,
                     'account_id'     => $l['account_id'],
                     'debit'          => (float) ($l['debit']  ?? 0),
                     'credit'         => (float) ($l['credit'] ?? 0),
                     'cost_center_id' => $l['cost_center_id'] ?? null,
                     'memo'           => $l['memo'] ?? null,
-                ];
-            })->all();
+                ])->all()
+            );
 
-            $tx->details()->createMany($payload);
-
-            if ($tx->status === 'posted') {
+            if ($autoPost) {
                 $tx->markPosted($userId);
             }
 
@@ -75,73 +78,73 @@ class TransactionService
     }
 
     /**
-     * Update existing transaction.
-     *
-     * Immutability + Fiscal Period Lock:
-     * - Enforced by TransactionObserver
-     * - Enforced by TransactionPolicy / Controller guard
+     * =========================================================
+     * UPDATE (Controlled Mutation)
+     * =========================================================
      */
-    public function update(Transaction $tx, array $data, int $userId): Transaction
-    {
+    public function update(
+        Transaction $tx,
+        array $data,
+        int $userId
+    ): Transaction {
         return DB::transaction(function () use ($tx, $data, $userId) {
+
+            $this->guard->assertEditable($tx, $data);
 
             if (isset($data['date'])) {
                 $date = Carbon::parse($data['date']);
+                $tx->date          = $date;
                 $tx->fiscal_year   = (int) $date->format('Y');
                 $tx->fiscal_period = (int) $date->format('n');
-                $tx->date          = $date;
+
+                $this->guard->assertPeriodWritable(
+                    $tx->fiscal_year,
+                    $tx->fiscal_period,
+                    $data['type'] ?? $tx->type
+                );
             }
 
             $tx->fill(collect($data)->except('details')->all());
-            $tx->save(); // ← Observer fires here
+            $tx->save(); // Observer still applies
 
             if (isset($data['details'])) {
+                $this->guard->assertAccountUsable(
+                    $data['details'],
+                    $data['type'] ?? $tx->type
+                );
 
                 $lines = collect($data['details']);
 
-                $sumDebit  = round($lines->sum(fn ($l) => (float) ($l['debit'] ?? 0)), 2);
+                $sumDebit  = round($lines->sum(fn ($l) => (float) ($l['debit']  ?? 0)), 2);
                 $sumCredit = round($lines->sum(fn ($l) => (float) ($l['credit'] ?? 0)), 2);
 
-                $exchangeRate = isset($data['exchange_rate'])
-                    ? (float) $data['exchange_rate']
-                    : (float) ($tx->exchange_rate ?? 1);
+                $rate = (float) ($data['exchange_rate'] ?? $tx->exchange_rate ?? 1);
 
                 $tx->update([
                     'total_debit'       => $sumDebit,
                     'total_credit'      => $sumCredit,
-                    'total_debit_base'  => round($sumDebit  * $exchangeRate, 2),
-                    'total_credit_base' => round($sumCredit * $exchangeRate, 2),
+                    'total_debit_base'  => round($sumDebit  * $rate, 2),
+                    'total_credit_base' => round($sumCredit * $rate, 2),
                 ]);
 
                 $tx->details()->delete();
-
-                $payload = $lines->values()->map(function ($l, $i) {
-                    return [
+                $tx->details()->createMany(
+                    $lines->values()->map(fn ($l, $i) => [
                         'line_no'        => $i + 1,
                         'account_id'     => $l['account_id'],
                         'debit'          => (float) ($l['debit']  ?? 0),
                         'credit'         => (float) ($l['credit'] ?? 0),
                         'cost_center_id' => $l['cost_center_id'] ?? null,
                         'memo'           => $l['memo'] ?? null,
-                    ];
-                })->all();
-
-                $tx->details()->createMany($payload);
+                    ])->all()
+                );
             }
 
-            if (
-                isset($data['status'])
-                && $data['status'] === 'posted'
-                && !$tx->posted_at
-            ) {
+            if (($data['status'] ?? null) === 'posted' && !$tx->posted_at) {
                 $tx->markPosted($userId);
             }
 
-            if (
-                isset($data['status'])
-                && $data['status'] === 'voided'
-                && !$tx->voided_at
-            ) {
+            if (($data['status'] ?? null) === 'voided' && !$tx->voided_at) {
                 $tx->markVoided($userId);
             }
 
@@ -150,16 +153,44 @@ class TransactionService
     }
 
     /**
-     * Delete transaction.
-     *
-     * Fiscal Period Lock:
-     * - Observer still applies (delete triggers saving/deleting).
+     * =========================================================
+     * DELETE (Soft, Guarded)
+     * =========================================================
      */
     public function delete(Transaction $tx): void
     {
         DB::transaction(function () use ($tx) {
+            $this->guard->assertDeletable($tx);
             $tx->details()->delete();
-            $tx->delete(); // Observer applies here
+            $tx->delete();
         });
+    }
+
+    /**
+     * =========================================================
+     * REVERSAL (Explicit Domain Operation)
+     * =========================================================
+     */
+    public function reverse(
+        Transaction $original,
+        string $date,
+        int $userId
+    ): Transaction {
+        $lines = $original->details->map(fn ($d) => [
+            'account_id'     => $d->account_id,
+            'debit'          => $d->credit,
+            'credit'         => $d->debit,
+            'cost_center_id' => $d->cost_center_id,
+            'memo'           => 'REV: ' . ($d->memo ?? ''),
+        ])->all();
+
+        return $this->create([
+            'date'        => $date,
+            'currency_id' => $original->currency_id,
+            'reference'   => $original->reference ? $original->reference . '-REV' : null,
+            'description' => 'Reversal of ' . $original->journal_no,
+            'type'        => Transaction::TYPE_SYSTEM_ADJUSTMENT,
+            'details'     => $lines,
+        ], $userId, autoPost: true);
     }
 }
