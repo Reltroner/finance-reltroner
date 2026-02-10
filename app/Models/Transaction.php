@@ -15,11 +15,11 @@ class Transaction extends Model
      * Transaction Type Contract
      * ======================= */
 
-    public const TYPE_GENERAL           = 'general';
+    public const TYPE_GENERAL           = 'GENERAL';
     public const TYPE_EQUITY_OPENING    = 'equity_opening';
     public const TYPE_EQUITY_INJECTION  = 'equity_injection';
-    public const TYPE_PERIOD_CLOSING    = 'period_closing';
-    public const TYPE_SYSTEM_ADJUSTMENT = 'system_adjustment';
+    public const TYPE_PERIOD_CLOSING    = 'PERIOD_CLOSING';
+    public const TYPE_SYSTEM_ADJUSTMENT = 'SYSTEM_ADJUSTMENT';
 
     protected $fillable = [
         // Identitas jurnal

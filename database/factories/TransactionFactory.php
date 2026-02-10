@@ -71,6 +71,10 @@ class TransactionFactory extends Factory
             'voided_by'         => null,
             'reversal_of_id'    => null,
 
+            // ✅ business intent journal
+            'type'             => Transaction::TYPE_GENERAL, // ✅ LEGACY
+            'transaction_type' => Transaction::TYPE_GENERAL, // ✅ DOMAIN
+
             // Metadata
             'created_by'        => 1,
         ];
@@ -133,12 +137,13 @@ class TransactionFactory extends Factory
         $lines = max(2, $lines); // minimal 2 baris
 
         return $this->afterCreating(function (Transaction $tx) use ($lines) {
+            $lineNo = 1;
             // Ambil total target dari header (sudah debit=credit)
             $targetDebit  = round((float)$tx->total_debit, 2);
             $targetCredit = round((float)$tx->total_credit, 2);
 
             // Siapkan akun & cost center
-            $accounts = Account::query()->inRandomOrder()->limit($lines)->pluck('id')->values();
+            $accounts = collect(range(1, $lines))->map(fn() => $this->pickSafeAccount()->id)->values();
             if ($accounts->count() < $lines) {
                 for ($i = $accounts->count(); $i < $lines; $i++) {
                     $accounts->push(Account::factory()->create()->id);
@@ -169,12 +174,13 @@ class TransactionFactory extends Factory
                 }
 
                 TransactionDetail::create([
-                    'transaction_id'  => $tx->id,
-                    'account_id'      => $accounts[$i],
-                    'debit'           => $debit,
-                    'credit'          => $credit,
-                    'cost_center_id'  => $costcenters[$i] ?? null,
-                    'memo'            => $this->faker->optional(0.6)->sentence(3),
+                    'transaction_id' => $tx->id,
+                    'line_no'        => $lineNo++,
+                    'account_id'     => $accounts[$i],
+                    'debit'          => $debit,
+                    'credit'         => $credit,
+                    'cost_center_id' => $costcenters[$i] ?? null,
+                    'memo'           => $this->faker->optional(0.6)->sentence(3),
                 ]);
             }
 
@@ -183,12 +189,12 @@ class TransactionFactory extends Factory
 
             if ($remainingDebit > 0) {
                 TransactionDetail::create([
-                    'transaction_id'  => $tx->id,
-                    'account_id'      => $accounts[$idx] ?? $accounts->random(),
-                    'debit'           => $remainingDebit,
-                    'credit'          => 0,
-                    'cost_center_id'  => $costcenters[$idx] ?? null,
-                    'memo'            => 'Balancing debit',
+                    'transaction_id' => $tx->id,
+                    'line_no'        => $lineNo++,
+                    'account_id'     => $accounts[$idx] ?? $accounts->random(),
+                    'debit'          => $remainingDebit,
+                    'credit'         => 0,
+                    'memo'           => 'Balancing debit',
                 ]);
                 $idx++;
             } else {
@@ -197,12 +203,12 @@ class TransactionFactory extends Factory
 
             if ($remainingCredit > 0) {
                 TransactionDetail::create([
-                    'transaction_id'  => $tx->id,
-                    'account_id'      => $accounts[$idx] ?? $accounts->random(),
-                    'debit'           => 0,
-                    'credit'          => $remainingCredit,
-                    'cost_center_id'  => $costcenters[$idx] ?? null,
-                    'memo'            => 'Balancing credit',
+                    'transaction_id' => $tx->id,
+                    'line_no'        => $lineNo++,
+                    'account_id'     => $accounts[$idx] ?? $accounts->random(),
+                    'debit'          => 0,
+                    'credit'         => $remainingCredit,
+                    'memo'           => 'Balancing credit',
                 ]);
             }
 
@@ -215,12 +221,12 @@ class TransactionFactory extends Factory
                 // pilih akun suspense jika ada, jika tidak pakai akun random
                 $suspense = Account::where('code', '3999')->value('id') ?? $accounts->random();
                 TransactionDetail::create([
-                    'transaction_id'  => $tx->id,
-                    'account_id'      => $suspense,
-                    'debit'           => $diff < 0 ? abs($diff) : 0, // jika debit kurang → tambah debit
-                    'credit'          => $diff > 0 ? $diff : 0,      // jika credit kurang → tambah credit
-                    'cost_center_id'  => null,
-                    'memo'            => 'Auto balancing (rounding)',
+                    'transaction_id' => $tx->id,
+                    'line_no'        => $lineNo++,
+                    'account_id'     => $suspense,
+                    'debit'          => $diff < 0 ? abs($diff) : 0,
+                    'credit'         => $diff > 0 ? $diff : 0,
+                    'memo'           => 'Auto balancing (rounding)',
                 ]);
                 // hitung ulang
                 $sumD = round($tx->details()->sum('debit'), 2);
@@ -236,5 +242,29 @@ class TransactionFactory extends Factory
                 'total_credit_base' => round($sumC * $rate, 2),
             ])->save();
         });
+    }
+
+    protected function pickSafeAccount(): Account
+    {
+        return Account::whereIn('type', [
+            Account::TYPE_ASSET,
+            Account::TYPE_LIABILITY,
+            Account::TYPE_EQUITY,
+            Account::TYPE_INCOME,
+            Account::TYPE_EXPENSE,
+        ])->inRandomOrder()->first()
+        ?? Account::factory()->create([
+            'type'           => Account::TYPE_ASSET,
+            'normal_balance' => Account::NORMAL_DEBIT,
+        ]);
+    }
+
+    public function forPeriod(int $year, int $period): self
+    {
+        return $this->state(fn() => [
+            'fiscal_year'   => $year,
+            'fiscal_period' => $period,
+            'date'          => Carbon::create($year, $period, 1),
+        ]);
     }
 }

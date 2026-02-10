@@ -21,29 +21,30 @@ use App\Http\Controllers\{
     VendorController
 };
 
+use App\Http\Controllers\Reports\{
+    TrialBalanceController,
+    ProfitLossController,
+    BalanceSheetController,
+    ComparativeProfitLossController,
+    ComparativeBalanceSheetController
+};
+
 use App\Http\Controllers\SSO\ConsumeController;
 use App\Http\Middleware\EnsureGatewayAuthenticated;
 
 /*
 |--------------------------------------------------------------------------
-| Finance Reltroner — Web Routes (PHASE 3)
+| Finance Reltroner — Web Routes
 |--------------------------------------------------------------------------
-| Context:
-| - Module: Finance
-| - Auth: Reltroner Gateway ONLY
-| - No direct Keycloak usage
-| - No Laravel Auth::login()
+| Module : Finance
+| Auth   : Reltroner Gateway ONLY
+| Policy : STEP 5.2 (Accounting Core) is FROZEN
 |--------------------------------------------------------------------------
 */
-
 
 /*
 |--------------------------------------------------------------------------
 | SSO ENTRY POINT (PUBLIC)
-|--------------------------------------------------------------------------
-| - Single-use entry from Gateway
-| - Verifies RMAT (JWT)
-| - Creates finance-local session
 |--------------------------------------------------------------------------
 */
 Route::get('/sso/consume', [ConsumeController::class, 'consume'])
@@ -54,21 +55,13 @@ Route::get('/sso/consume', [ConsumeController::class, 'consume'])
 |--------------------------------------------------------------------------
 | ROOT ACCESS
 |--------------------------------------------------------------------------
-| - Finance has NO public landing page
-| - Root always resolves to dashboard
-|--------------------------------------------------------------------------
 */
-Route::get('/', function () {
-    return redirect()->route('dashboard');
-});
+Route::get('/', fn () => redirect()->route('dashboard'));
 
 
 /*
 |--------------------------------------------------------------------------
 | PROTECTED FINANCE AREA
-|--------------------------------------------------------------------------
-| - Requires finance-local session
-| - Enforced strictly by EnsureGatewayAuthenticated
 |--------------------------------------------------------------------------
 */
 Route::middleware(['web', EnsureGatewayAuthenticated::class])
@@ -82,15 +75,11 @@ Route::middleware(['web', EnsureGatewayAuthenticated::class])
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
 
-        Route::get('/dashboard/index', [DashboardController::class, 'index'])
-            ->name('dashboard.index');
-
 
         /*
         |--------------------------------------------------------------------------
-        | General Ledger
+        | General Ledger (READ VIEW)
         |--------------------------------------------------------------------------
-        | GET /ledger?account_id=&date_from=&date_to=&cost_center_id=&reference=&status=
         */
         Route::get('/ledger', [TransactionController::class, 'ledger'])
             ->name('transactions.ledger');
@@ -98,7 +87,7 @@ Route::middleware(['web', EnsureGatewayAuthenticated::class])
 
         /*
         |--------------------------------------------------------------------------
-        | Resource Routes (Blade CRUD)
+        | CRUD — Master & Transaction Data
         |--------------------------------------------------------------------------
         */
         Route::resources([
@@ -121,7 +110,7 @@ Route::middleware(['web', EnsureGatewayAuthenticated::class])
 
         /*
         |--------------------------------------------------------------------------
-        | Attachments Download
+        | Attachments
         |--------------------------------------------------------------------------
         */
         Route::get(
@@ -132,20 +121,64 @@ Route::middleware(['web', EnsureGatewayAuthenticated::class])
 
         /*
         |--------------------------------------------------------------------------
-        | Internal Dashboard API (NON-PUBLIC)
+        | FINANCIAL REPORTS — READ ONLY (STEP 5.3+)
         |--------------------------------------------------------------------------
-        | - For Blade / JS dashboard only
-        | - NOT a public API
+        | ❗ NO WRITE
+        | ❗ NO MUTATION
+        | ❗ NO ACCOUNTING LOGIC
         |--------------------------------------------------------------------------
         */
-        Route::get('/_internal/dashboard-summary', function () {
-            return response()->json([
-                'assets'      => 120000,
-                'liabilities' => 50000,
-                'equity'      => 70000,
-                'profit'      => [15000, 12000, 18000, 20000, 17000, 21000],
-                'loss'        => [2000, 1000, 3000, 2500, 1500, 1800],
-            ]);
-        })->name('internal.dashboard.summary');
+        Route::prefix('reports')->name('reports.')->group(function () {
+
+            /*
+            |------------------------------------------------------------------
+            | Single-period Statements (5.3A / 5.3B)
+            |------------------------------------------------------------------
+            */
+            Route::get(
+                '/trial-balance/{fiscalPeriodId}',
+                TrialBalanceController::class
+            )->name('trial-balance');
+
+            Route::get(
+                '/profit-loss/{fiscalPeriodId}',
+                ProfitLossController::class
+            )->name('profit-loss');
+
+            Route::get(
+                '/balance-sheet/{fiscalPeriodId}',
+                BalanceSheetController::class
+            )->name('balance-sheet');
+
+
+            /*
+            |------------------------------------------------------------------
+            | Comparative Statements (5.3C / 5.3D)
+            |------------------------------------------------------------------
+            */
+            Route::get(
+                '/profit-loss/comparative',
+                ComparativeProfitLossController::class
+            )->name('profit-loss.comparative');
+
+            Route::get(
+                '/balance-sheet/comparative',
+                ComparativeBalanceSheetController::class
+            )->name('balance-sheet.comparative');
+        });
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | INTERNAL DASHBOARD API (READ ONLY)
+        |--------------------------------------------------------------------------
+        | ❌ Not Public API
+        | ❌ No accounting mutation
+        |--------------------------------------------------------------------------
+        */
+        Route::get(
+            '/_internal/dashboard-summary',
+            [DashboardController::class, 'summary']
+        )->name('internal.dashboard.summary');
 
     });

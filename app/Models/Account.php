@@ -11,6 +11,15 @@ class Account extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const TYPE_ASSET      = 'asset';
+    public const TYPE_LIABILITY  = 'liability';
+    public const TYPE_EQUITY     = 'equity';
+    public const TYPE_INCOME     = 'income';
+    public const TYPE_EXPENSE    = 'expense';
+
+    public const NORMAL_DEBIT  = 'debit';
+    public const NORMAL_CREDIT = 'credit';
+
     protected $fillable = [
         'code',
         'name',

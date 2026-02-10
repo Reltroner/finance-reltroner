@@ -23,12 +23,16 @@ class TransactionObserver
 
         if (
             $fp->status === 'closed'
-            && !in_array($tx->type, [
+            && !in_array($tx->transaction_type, [
                 Transaction::TYPE_PERIOD_CLOSING,
                 Transaction::TYPE_SYSTEM_ADJUSTMENT,
             ], true)
         ) {
             throw new DomainException("Fiscal period closed.");
+        }
+
+        if (!$tx->transaction_type) {
+            throw new DomainException('Transaction type is required.');
         }
     }
 }

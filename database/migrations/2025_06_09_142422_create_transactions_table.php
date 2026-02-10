@@ -22,6 +22,8 @@ return new class extends Migration
             // Reference eksternal (opsional): nomor invoice, bill, dsb.
             $table->string('reference')->nullable()->index();
 
+            $table->string('type', 50)->after('status');
+
             $table->text('description')->nullable();
 
             // Tanggal transaksi (document date)

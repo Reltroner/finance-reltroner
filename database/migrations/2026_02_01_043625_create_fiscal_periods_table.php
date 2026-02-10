@@ -9,16 +9,36 @@ return new class extends Migration {
     {
         Schema::create('fiscal_periods', function (Blueprint $table) {
             $table->id();
-            $table->integer('year');
-            $table->integer('period'); // 1..12
-            $table->enum('status', ['open', 'closed', 'locked'])->default('open');
+
+            // Natural accounting key
+            $table->unsignedSmallInteger('year');
+            $table->unsignedTinyInteger('period'); // 1..12 (enforced by domain)
+
+            // Lifecycle state
+            $table->enum('status', ['open', 'closed', 'locked'])
+                  ->default('open');
+
+            // Audit timestamps
             $table->timestamp('closed_at')->nullable();
             $table->timestamp('locked_at')->nullable();
+
+            // Audit actors
             $table->unsignedBigInteger('closed_by')->nullable();
             $table->unsignedBigInteger('locked_by')->nullable();
+
             $table->timestamps();
 
+            // Uniqueness constraint
             $table->unique(['year', 'period']);
+
+            // Optional audit-grade FK (safe)
+            $table->foreign('closed_by')
+                  ->references('id')->on('users')
+                  ->nullOnDelete();
+
+            $table->foreign('locked_by')
+                  ->references('id')->on('users')
+                  ->nullOnDelete();
         });
     }
 
