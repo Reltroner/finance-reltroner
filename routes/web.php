@@ -56,8 +56,11 @@ Route::get('/sso/consume', [ConsumeController::class, 'consume'])
 | ROOT ACCESS
 |--------------------------------------------------------------------------
 */
-Route::get('/', fn () => redirect()->route('dashboard'));
-
+Route::get('/', function () {
+    return session('finance_authenticated')
+        ? redirect()->route('dashboard')
+        : redirect()->route('sso.consume');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -74,7 +77,6 @@ Route::middleware(['web', EnsureGatewayAuthenticated::class])
         */
         Route::get('/dashboard', [DashboardController::class, 'index'])
             ->name('dashboard');
-
 
         /*
         |--------------------------------------------------------------------------

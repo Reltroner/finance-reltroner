@@ -356,16 +356,23 @@ body, #app, #main, .page-heading, .page-content, .section, .card, .card-body {
     });
 
     // Example fetch update — replace with actual endpoint later
-    fetch('/dashboard')
-    .then(res => res.json())
-    .then(data => {
-        balanceChart.data.datasets[0].data = [
-            data.assets, data.liabilities, data.equity
-        ];
-        profitLossChart.data.datasets[0].data = data.profit;
-        profitLossChart.data.datasets[1].data = data.loss;
-        profitLossChart.update();
-        balanceChart.update();
+    fetch('/_internal/dashboard-summary')
+        .then(res => res.json())
+        .then(data => {
+            balanceChart.data.datasets[0].data = [
+                data.assets,
+                data.liabilities,
+                data.equity
+            ];
+
+            profitLossChart.data.datasets[0].data = data.profit;
+            profitLossChart.data.datasets[1].data = data.loss;
+
+            balanceChart.update();
+            profitLossChart.update();
+        })
+        .catch(err => {
+            console.error('Dashboard summary fetch failed', err);
     });
 
 </script>

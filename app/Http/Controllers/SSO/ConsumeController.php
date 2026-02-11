@@ -68,6 +68,6 @@ class ConsumeController extends Controller
         ]);
 
         // 🚀 Enter finance dashboard
-        return redirect()->route('dashboard.index');
+        return redirect()->route('dashboard');
     }
 }
