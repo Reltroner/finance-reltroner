@@ -1,8 +1,10 @@
 <?php
 // app/Http/Controllers/Reports/ProfitLossController.php
+
 namespace App\Http\Controllers\Reports;
 
 use App\Http\Controllers\Controller;
+use App\Models\FiscalPeriod;
 use App\Services\Accounting\Read\Statements\ProfitLossService;
 use Illuminate\Http\Request;
 
@@ -19,8 +21,15 @@ class ProfitLossController extends Controller
         int $fiscalPeriodId,
         ProfitLossService $service
     ) {
+        $period = FiscalPeriod::findOrFail($fiscalPeriodId);
+
+        $statement = $service->generate(
+            $period->year,
+            $period->period
+        );
+
         return view('reports.profit-loss', [
-            'statement' => $service->generate($fiscalPeriodId),
+            'statement'      => $statement,
             'fiscalPeriodId' => $fiscalPeriodId,
         ]);
     }

@@ -1,5 +1,6 @@
 <?php
 // app/Services/Accounting/Read/Statements/BalanceSheetService.php
+
 namespace App\Services\Accounting\Read\Statements;
 
 use App\Models\Account;
@@ -11,18 +12,30 @@ class BalanceSheetService
         protected AccountBalanceService $balances
     ) {}
 
-    public function generate(int $fiscalPeriodId): FinancialStatementDTO
-    {
-        $assets = $this->section('Assets', ['ASSET'], $fiscalPeriodId);
+    public function generate(
+        int $year,
+        int $period
+    ): FinancialStatementDTO {
+
+        $assets = $this->section(
+            'Assets',
+            ['ASSET'],
+            $year,
+            $period
+        );
+
         $liabilities = $this->section(
             'Liabilities',
             ['LIABILITY'],
-            $fiscalPeriodId
+            $year,
+            $period
         );
+
         $equity = $this->section(
             'Equity',
             ['EQUITY'],
-            $fiscalPeriodId
+            $year,
+            $period
         );
 
         return new FinancialStatementDTO(
@@ -34,15 +47,22 @@ class BalanceSheetService
     protected function section(
         string $label,
         array $types,
-        int $periodId
+        int $year,
+        int $period
     ): StatementSectionDTO {
+
         $lines = Account::query()
             ->whereIn('type', $types)
-            ->orderBy('code')
+            ->orderBy('code') // 🔒 deterministic ordering
             ->get()
-            ->map(function ($account) use ($periodId) {
+            ->map(function ($account) use ($year, $period) {
+
                 $balance = $this->balances
-                    ->getEndingBalance($account->id, $periodId);
+                    ->getEndingBalance(
+                        accountId: $account->id,
+                        year: $year,
+                        period: $period
+                    );
 
                 return new StatementLineDTO(
                     $account->id,

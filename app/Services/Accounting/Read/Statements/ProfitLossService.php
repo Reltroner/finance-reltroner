@@ -11,18 +11,23 @@ class ProfitLossService
         protected AccountBalanceService $balances
     ) {}
 
-    public function generate(int $fiscalPeriodId): FinancialStatementDTO
-    {
+    public function generate(
+        int $year,
+        int $period
+    ): FinancialStatementDTO {
+
         $revenue = $this->buildSection(
             'Revenue',
             ['REVENUE'],
-            $fiscalPeriodId
+            $year,
+            $period
         );
 
         $expenses = $this->buildSection(
             'Expenses',
             ['EXPENSE'],
-            $fiscalPeriodId
+            $year,
+            $period
         );
 
         return new FinancialStatementDTO(
@@ -34,15 +39,22 @@ class ProfitLossService
     protected function buildSection(
         string $label,
         array $types,
-        int $periodId
+        int $year,
+        int $period
     ): StatementSectionDTO {
+
         $lines = Account::query()
             ->whereIn('type', $types)
             ->orderBy('code')
             ->get()
-            ->map(function ($account) use ($periodId) {
+            ->map(function ($account) use ($year, $period) {
+
                 $balance = $this->balances
-                    ->getEndingBalance($account->id, $periodId);
+                    ->getEndingBalance(
+                        accountId: $account->id,
+                        year: $year,
+                        period: $period
+                    );
 
                 return new StatementLineDTO(
                     $account->id,

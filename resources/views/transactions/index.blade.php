@@ -29,7 +29,7 @@
             <div class="col-12 col-md-6">
                 <h3>Transactions</h3>
                 <p class="text-subtitle text-muted">
-                    Finance journal entries (STEP 5.2B.4 compliant)
+                    Finance journal entries (STEP 5.4 compliant)
                 </p>
             </div>
         </div>

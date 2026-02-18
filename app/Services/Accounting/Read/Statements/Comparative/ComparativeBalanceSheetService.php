@@ -2,6 +2,7 @@
 // app/Services/Accounting/Read/Statements/Comparative/ComparativeBalanceSheetService.php
 namespace App\Services\Accounting\Read\Statements\Comparative;
 
+use App\Models\FiscalPeriod;
 use App\Services\Accounting\Read\Statements\BalanceSheetService;
 
 class ComparativeBalanceSheetService
@@ -19,7 +20,13 @@ class ComparativeBalanceSheetService
         $accountMatrix = [];
 
         foreach ($periods as $periodId => $label) {
-            $bs = $this->bsService->generate($periodId);
+
+            $period = FiscalPeriod::findOrFail($periodId);
+
+            $bs = $this->bsService->generate(
+                $period->year,
+                $period->period
+            );
 
             $periodSnapshots[] = new PeriodBSDTO(
                 $periodId,
@@ -29,11 +36,12 @@ class ComparativeBalanceSheetService
 
             foreach ($bs->sections as $section) {
                 foreach ($section->lines as $line) {
+
                     $accountMatrix[$line->accountId]['meta'] ??= [
                         'accountId'   => $line->accountId,
                         'accountCode' => $line->accountCode,
                         'accountName' => $line->accountName,
-                        'accountType' => $section->label, // Assets / Liabilities / Equity
+                        'accountType' => $section->label,
                     ];
 
                     $accountMatrix[$line->accountId]['amounts'][$periodId]
@@ -42,7 +50,7 @@ class ComparativeBalanceSheetService
             }
         }
 
-        $lines = array_map(
+        $lines = array_values(array_map(
             fn ($row) => new ComparativeBSLineDTO(
                 $row['meta']['accountId'],
                 $row['meta']['accountCode'],
@@ -51,7 +59,7 @@ class ComparativeBalanceSheetService
                 $row['amounts'] ?? []
             ),
             $accountMatrix
-        );
+        ));
 
         return new ComparativeBalanceSheetDTO(
             'Comparative Balance Sheet',

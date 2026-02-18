@@ -24,6 +24,11 @@ class TransactionFactory extends Factory
      */
     protected static array $seqPerPeriod = [];
 
+    protected static function booted()
+    {
+        self::$seqPerPeriod = [];
+    }
+
     protected function nextJournalNo(int $year, int $period): string
     {
         $key = $year.'-'.$period;
@@ -34,48 +39,36 @@ class TransactionFactory extends Factory
 
     public function definition(): array
     {
-        // Tanggal 12 bulan terakhir
-        $date = Carbon::instance($this->faker->dateTimeBetween('-12 months', 'now'));
-        $year = (int) $date->format('Y');
-        $per  = (int) $date->format('n');
+        $year = 2025;
+        $per  = 1;
+        $date = Carbon::create($year, $per, 1);
 
-        // Kurs & total (balanced)
-        $exchange = $this->faker->randomFloat(10, 0.8000000000, 1.5000000000);
-        $total    = $this->faker->randomFloat(2, 500, 25000); // debit = credit = total
-
-        // Status random ringan (lebih banyak draft)
-        $status   = $this->faker->randomElement(['draft','draft','draft','posted']);
+        $exchange = 1.0;
+        $total    = 1000.00;
+        $status   = 'posted';
 
         return [
-            // Identitas & periode
             'journal_no'        => $this->nextJournalNo($year, $per),
-            'reference'         => $this->faker->unique()->bothify('REF-#####'),
-            'description'       => $this->faker->sentence(),
+            'reference'         => 'REF-STATIC',
+            'description'       => 'Deterministic test transaction',
             'date'              => $date->toDateString(),
             'fiscal_year'       => $year,
             'fiscal_period'     => $per,
 
-            // Currency & totals
             'currency_id'       => Currency::factory(),
             'exchange_rate'     => $exchange,
             'total_debit'       => $total,
             'total_credit'      => $total,
-            'total_debit_base'  => round($total * $exchange, 2),
-            'total_credit_base' => round($total * $exchange, 2),
+            'total_debit_base'  => $total,
+            'total_credit_base' => $total,
 
-            // Status
             'status'            => $status,
-            'posted_at'         => $status === 'posted' ? $date->copy()->addMinutes(rand(0, 600)) : null,
-            'posted_by'         => $status === 'posted' ? 1 : null,
-            'voided_at'         => null,
-            'voided_by'         => null,
-            'reversal_of_id'    => null,
+            'posted_at'         => $date,
+            'posted_by'         => 1,
 
-            // ✅ business intent journal
-            'type'             => Transaction::TYPE_GENERAL, // ✅ LEGACY
-            'transaction_type' => Transaction::TYPE_GENERAL, // ✅ DOMAIN
+            'type'              => Transaction::TYPE_GENERAL,
+            'transaction_type'  => Transaction::TYPE_GENERAL,
 
-            // Metadata
             'created_by'        => 1,
         ];
     }

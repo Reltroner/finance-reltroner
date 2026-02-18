@@ -32,8 +32,6 @@ class AccountBalanceService
 
         return new BalanceDTO(
             accountId: $accountId,
-            year: $year,
-            period: $period,
             debit: $totalDebit,
             credit: $totalCredit
         );
