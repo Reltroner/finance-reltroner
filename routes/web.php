@@ -29,6 +29,7 @@ use App\Http\Controllers\Reports\{
     ComparativeBalanceSheetController
 };
 
+use App\Http\Controllers\Accounting\BudgetVsActualController;
 use App\Http\Controllers\SSO\ConsumeController;
 use App\Http\Middleware\EnsureGatewayAuthenticated;
 
@@ -182,5 +183,10 @@ Route::middleware(['web', EnsureGatewayAuthenticated::class])
             '/_internal/dashboard-summary',
             [DashboardController::class, 'summary']
         )->name('internal.dashboard.summary');
+
+        Route::get(
+            '/accounting/budget-vs-actual/{periodId}/{version}',
+            [BudgetVsActualController::class, 'show']
+        )->name('accounting.budget-vs-actual');
 
     });

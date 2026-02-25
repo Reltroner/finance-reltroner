@@ -5,8 +5,9 @@ namespace App\Services\Accounting\Snapshot;
 use Illuminate\Support\Facades\DB;
 use DateTimeImmutable;
 use RuntimeException;
+use App\Services\Accounting\Snapshot\Contracts\SnapshotExistenceChecker;
 
-final class SnapshotQueryService
+final class SnapshotQueryService implements SnapshotExistenceChecker
 {
     public function get(int $fiscalPeriodId, int $version): SnapshotDTO
     {
@@ -35,4 +36,13 @@ final class SnapshotQueryService
             createdAt: new DateTimeImmutable($record->created_at)
         );
     }
+
+    public function exists(string $snapshotVersion): bool
+    {
+        return \DB::table('financial_snapshots')
+            ->where('version', $snapshotVersion)
+            ->exists();
+    }
+
+    
 }

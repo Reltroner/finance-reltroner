@@ -4,227 +4,347 @@
 
 <p align="center">
   <strong>Finance Reltroner</strong><br>
-  Enterprise-Grade Accounting & Ledger System • Laravel 12
+  Enterprise-Grade Accounting & Deterministic Financial Infrastructure • Laravel 12
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Domain-Finance-blue">
-  <img src="https://img.shields.io/badge/Architecture-Audit--Driven-success">
+  <img src="https://img.shields.io/badge/Architecture-Contract--Driven-success">
   <img src="https://img.shields.io/badge/Immutability-Enforced-critical">
+  <img src="https://img.shields.io/badge/Determinism-Guaranteed-brightgreen">
+  <img src="https://img.shields.io/badge/Freeze-5.1--5.5-Locked-black">
   <img src="https://img.shields.io/badge/PHP-8.2+-8892BF">
   <img src="https://img.shields.io/badge/Laravel-12.x-red">
 </p>
 
 ---
 
-## 📌 Overview
+# 📌 Finance Reltroner — Architectural Overview
 
-**Finance Reltroner** is an **enterprise-grade accounting and finance engine** designed with
-**immutability, auditability, and fiscal correctness as first-class principles**.
+**Finance Reltroner** is not a CRUD accounting application.
 
-This repository implements:
-- Journal transactions
-- General ledger
-- Fiscal period locking
-- Equity & retained earnings safeguards
-- Strict audit compliance
+It is a:
 
-It is **not a CRUD finance app**.  
-It is a **controlled accounting system**.
+> Contract-Locked · Deterministic · Audit-Grade
+> Financial Infrastructure Engine
 
----
+The system is built around:
 
-## 🎯 Core Objectives
+* Contract-based accounting
+* Immutability enforcement
+* Deterministic financial computation
+* Audit-first governance
+* Strict architectural layering
 
-- 📒 Accurate journal-based accounting
-- 🔒 Enforced immutability after posting / closing
-- 🧾 Full audit trail without exception paths
-- 📆 Fiscal period awareness & locking
-- 🔗 Trust-based authentication via Reltroner Gateway
+It is designed for:
 
----
+> Historical integrity.
+> Financial correctness.
+> Computational determinism.
 
-## 🧠 Architectural Principles
-
-### 1️⃣ Audit-First Design
-Every rule exists to satisfy:
-- External audit expectations
-- Accounting best practices
-- Deterministic historical truth
-
-Nothing is “convenient” if it breaks auditability.
+This is an enterprise-grade accounting kernel.
 
 ---
 
-### 2️⃣ Immutability Is Mandatory
+# 🧱 Frozen Architecture Baseline (STEP 5.1 – 5.5)
+
+Phase 5 is officially frozen.
+
+| Step | Layer                   | Status    |
+| ---- | ----------------------- | --------- |
+| 5.1  | Domain Data Contract    | 🔒 FROZEN |
+| 5.2  | Write Governance        | 🔒 FROZEN |
+| 5.3  | Read Architecture       | 🔒 FROZEN |
+| 5.4  | Snapshot & Analytics    | 🔒 FROZEN |
+| 5.5  | Budget vs Actual Engine | 🔒 FROZEN |
+
+All public contracts within this range are locked.
+
+Any modification requires:
+
+* Freeze Revoke Protocol
+* Contract Migration
+* Full Regression Re-certification
+
+---
+
+# 🧠 Architectural Principles
+
+---
+
+## 1️⃣ Contract-Based Accounting (STEP 5.1)
+
+The database is the source of truth.
+
+Examples:
+
+* `normal_balance` is mandatory and explicit
+* No implicit inference
+* No hidden fallback
+* No runtime tradition-based logic
+
+Accounting behavior follows data contracts, not conventions.
+
+---
+
+## 2️⃣ Write Immutability (STEP 5.2)
+
 Once a transaction is:
-- **Posted**
-- Or belongs to a **closed fiscal period**
 
-➡️ it **cannot be mutated or deleted**.
+* Posted
+* Or fiscal period locked
 
-Corrections require **reversals**, not edits.
+It cannot be edited or deleted.
 
----
+Corrections occur via reversal entries only.
 
-### 3️⃣ Separation of Concerns
+Single write path:
 
-| Layer | Responsibility |
-|----|----|
-| Controller | HTTP orchestration only |
-| Request | Validation & guardrails |
-| Service | Accounting rules |
-| Guard | Fiscal & immutability enforcement |
-| Model | Persistence only |
-
----
-
-## 🔐 Authentication & Trust Model
-
-Finance Reltroner **does not authenticate users directly**.
-
-It trusts the **Reltroner Gateway** via signed tokens.
-
-Required `.env` configuration:
-
-```env
-RELTRONER_GATEWAY_ISSUER=http://app.reltroner.test
-RELTRONER_GATEWAY_AUDIENCE=finance.reltroner.test
-RELTRONER_MODULE_SIGNING_KEY=shared-secret
-````
-
----
-
-## 🧾 STEP 5.2 — OFFICIALLY FROZEN
-
-### ✅ Status: **FINAL — AUDIT PASSED**
-
-**STEP 5.2: Equity & Retained Earnings Contracts**
-has been fully implemented, tested, and frozen.
-
-No further modifications are allowed without:
-
-* Explicit version bump
-* New audit cycle
-
----
-
-### 🔒 What STEP 5.2 Guarantees
-
-* Immutable transaction records
-* Fiscal period locking (5.2B.4)
-* Equity account protection
-* No backdoor mutations
-* Deterministic ledger history
-
----
-
-### 📦 Key Components (STEP 5.2)
-
-| Component              | Purpose                           |
-| ---------------------- | --------------------------------- |
-| `TransactionService`   | Central accounting logic          |
-| `TransactionGuard`     | Fiscal & immutability enforcement |
-| `PeriodClosingService` | Period finalization               |
-| Request Objects        | Validation & locking rules        |
-| Whitebox Tests         | Audit verification                |
-
----
-
-## 🧪 Testing Strategy
-
-Finance Reltroner uses **whitebox testing** for audit compliance.
-
-### Run Tests
-
-```bash
-composer test
+```
+UI / API / Seeder
+        ↓
+TransactionService
+        ↓
+Observer
+        ↓
+Database
 ```
 
-or:
+No bypass allowed.
+
+---
+
+## 3️⃣ Read Is Pure (STEP 5.3)
+
+The read layer:
+
+* Does not mutate
+* Does not “fix” data
+* Does not infer missing state
+* Does not correct domain errors
+
+Trial Balance, P&L, and Balance Sheet are deterministic projections.
+
+---
+
+## 4️⃣ Snapshot = Immutable Financial Memory (STEP 5.4)
+
+The snapshot layer is:
+
+* Append-only
+* Hash-verified
+* Ledger-drift protected
+* Deterministically serialized
+
+Snapshots are never updated.
+
+Analytics layer:
+
+* KPI
+* Projection
+* Forecast
+* Scenario
+
+All implemented as pure functions.
+
+---
+
+## 5️⃣ Financial Comparison Kernel (STEP 5.5)
+
+Budget vs Actual engine:
+
+```php
+compare(int $fiscalPeriodId, int $version): array
+generate(int $fiscalPeriodId, int $version): BudgetVsActualReportDTO
+```
+
+Guarantees:
+
+* Deterministic
+* 4-decimal rounding
+* Division-by-zero guard
+* Missing metric guard
+* Missing period guard
+* Explicit sorting
+* No mutation
+* No DB access in compute layer
+
+This is the financial comparison kernel.
+
+---
+
+# 🔐 Determinism Standard
+
+Finance Reltroner enforces:
+
+> Identical input → Identical output
+
+Enforced via:
+
+* Explicit sorting
+* Strict typing
+* 4-decimal precision
+* No `random()`
+* No `time()`
+* No hidden state
+* Snapshot hashing
+
+Probabilistic drift is not tolerated.
+
+---
+
+# 🏗 Layer Separation
+
+| Layer           | Responsibility       | Mutation    |
+| --------------- | -------------------- | ----------- |
+| Database        | Truth storage        | Controlled  |
+| Service (Write) | Journal governance   | Controlled  |
+| Service (Read)  | Projection           | None        |
+| Snapshot        | Aggregation          | Append-only |
+| Analytics       | Pure math            | None        |
+| Budget Engine   | Financial comparison | None        |
+| Reporting       | Projection only      | None        |
+| Controller      | HTTP boundary        | None        |
+
+There is no cross-layer leakage.
+
+---
+
+# 🧪 Testing Baseline
+
+Current certification:
+
+* 73 tests
+* 209 assertions
+* 0 failures
+* Freeze validated
+
+Run:
 
 ```bash
 php artisan test
 ```
 
-### Test Coverage Includes
+Tests are governance.
 
-* Transaction immutability
-* Closed fiscal period rejection
-* Balanced journal enforcement
-* Forbidden updates & deletes
-* Ledger correctness
+If tests fail:
 
-All STEP 5.2 tests **PASS** and are part of the freeze criteria.
+> Freeze integrity is compromised.
 
 ---
 
-## 🗂️ Domain Scope
+# 📊 Domain Coverage
 
-### Included
+## Included
 
-* Journal Transactions
-* Transaction Details
-* General Ledger
-* Fiscal Periods
-* Attachments
-* Tax Applications
+* Double-entry journal
+* Ledger enforcement
+* Fiscal period locking
+* Snapshot versioning
+* KPI engine
+* Forecast engine
+* Scenario engine
+* Budget definition
+* Budget vs Actual comparison
+* Deterministic reporting
 
-### Explicitly Excluded
+## Explicitly Excluded
 
-* Authentication logic
-* User management
-* Payment gateways
-* Invoicing UI logic
-
----
-
-## 🚧 Change Policy
-
-### 🔴 Forbidden Without New Phase
-
-* Editing posted transactions
-* Editing closed periods
-* Deleting ledger history
-* Bypassing guards
-
-### 🟢 Allowed
-
-* New phases (5.3+)
-* Additive features
-* Read-only optimizations
-* Reporting extensions
+* Authentication
+* Payment processing
+* Invoicing workflows
+* ERP synchronization
+* UI-heavy modules
+* Multi-tenant isolation (future phase)
 
 ---
 
-## 🧭 Roadmap
-
-| Phase | Description                  | Status       |
-| ----- | ---------------------------- | ------------ |
-| 5.1   | Journal Foundation           | ✅            |
-| 5.2   | Equity & Retained Earnings   | ✅ **FROZEN** |
-| 5.3   | Reporting & Analytics        | planned      |
-| 6.x   | Consolidation / Multi-Entity | planned      |
+# 🚧 Change Policy
 
 ---
 
-## 🤝 Contribution Rules
+## 🔴 Forbidden Without Freeze Revoke
 
-* Respect immutability
-* Never bypass guards
-* Every change must be test-backed
-* Accounting rules > convenience
-
-This repository assumes contributors **understand accounting fundamentals**.
-
----
-
-## 📄 License
-
-This project is built on top of the **Laravel Framework**
-and is licensed under the **MIT License**, unless stated otherwise.
+* Modify frozen public signatures
+* Change rounding precision
+* Remove guards
+* Alter sorting behavior
+* Modify DTO schema
+* Add silent fallback logic
+* Introduce mutation into compute layer
 
 ---
 
-> **“In accounting, history must never lie — even for convenience.”**
-> — Finance Reltroner Principle
+## 🟢 Allowed
+
+* Add new phases (5.6+)
+* Add new tests
+* Performance optimization (no behavior change)
+* Documentation updates
+* Additive read-only reporting
+
+---
+
+# 🧭 Strategic Roadmap
+
+| Phase | Description                  | Status  |
+| ----- | ---------------------------- | ------- |
+| 5.1   | Domain Contract Foundation   | 🔒      |
+| 5.2   | Write Governance             | 🔒      |
+| 5.3   | Read Architecture            | 🔒      |
+| 5.4   | Snapshot & Analytics         | 🔒      |
+| 5.5   | Budget vs Actual Kernel      | 🔒      |
+| 5.6   | Forecast vs Budget Engine    | Planned |
+| 6.x   | Multi-Entity & Consolidation | Planned |
+
+Future phases must layer above frozen contracts.
+
+---
+
+# 🔑 Governance Philosophy
+
+Finance Reltroner is built on one principle:
+
+> Accounting history must never lie.
+
+Extended principle:
+
+> Financial comparison must never drift.
+
+Determinism is mandatory.
+Immutability is mandatory.
+Contracts are binding.
+
+---
+
+# 🏛 Project Authority
+
+Maintained under:
+
+[https://github.com/Reltroner/finance-reltroner](https://github.com/Reltroner/finance-reltroner)
+
+Architecture governed by freeze notices STEP 5.1 – STEP 5.5.
+
+---
+
+# 📄 License
+
+Built on Laravel Framework.
+Licensed under MIT unless otherwise specified.
+
+---
+
+# 🧊 Final Statement
+
+Finance Reltroner is no longer a feature collection.
+
+It is now:
+
+> A contract-locked,
+> deterministic,
+> audit-safe,
+> financial computation infrastructure.
+
+Baseline secured.
+Architecture stabilized.
+Freeze active.
