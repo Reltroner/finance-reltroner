@@ -14,7 +14,7 @@
             <div class="col-12 col-md-6">
                 <h3>Create Transaction</h3>
                 <p class="text-subtitle text-muted">
-                    General journal entry (STEP 5.2B.4 compliant)
+                    General journal entry (STEP 5.6 compliant)
                 </p>
             </div>
         </div>

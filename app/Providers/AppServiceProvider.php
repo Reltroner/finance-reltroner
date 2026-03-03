@@ -1,10 +1,13 @@
 <?php
 // app/Providers/AppServiceProvider.php
+
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Models\Transaction;
 use App\Observers\TransactionObserver;
+use App\Support\Clock\ClockInterface;
+use App\Support\Clock\SystemClock;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -13,7 +16,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // ❌ JANGAN DAFTARKAN OBSERVER DI SINI
+        // ✅ Bind Clock abstraction
+        $this->app->bind(
+            ClockInterface::class,
+            SystemClock::class
+        );
     }
 
     /**

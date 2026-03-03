@@ -4,7 +4,8 @@
 namespace App\Services\Accounting\Analytics\Forecast;
 
 use App\Services\Accounting\Analytics\Projection\TrendDTO;
-use DateTimeImmutable;
+use App\Support\Clock\ClockInterface;
+use App\Support\Clock\SystemClock;
 use DomainException;
 
 final class ForecastService
@@ -13,6 +14,13 @@ final class ForecastService
     public const STRATEGY_CAGR = ForecastStrategy::CAGR;
     public const STRATEGY_FIXED = ForecastStrategy::FIXED_GROWTH;
     public const STRATEGY_MOVING_AVERAGE = ForecastStrategy::MOVING_AVERAGE;
+    private ClockInterface $clock;
+
+    public function __construct(?ClockInterface $clock = null)
+    {
+        $this->clock = $clock ?? new SystemClock();
+    }
+
     public function forecast(
         TrendDTO $trend,
         int $futurePeriods,
@@ -75,7 +83,7 @@ final class ForecastService
             forecastPeriods: $forecastPeriods,
             forecastValues: $forecastValues,
             strategy: $strategy,
-            generatedAt: new DateTimeImmutable()
+            generatedAt: $this->clock->now()
         );
     }
 
@@ -99,7 +107,7 @@ final class ForecastService
         $sumXX = 0.0;
 
         foreach ($values as $i => $y) {
-            $x = $i + 1; // 1-based index
+            $x = $i + 1;
             $sumX  += $x;
             $sumY  += $y;
             $sumXY += $x * $y;
@@ -159,7 +167,7 @@ final class ForecastService
             $avg = $this->normalize($avg);
 
             $results[] = $avg;
-            $series[] = $avg; // recursive deterministic rolling
+            $series[] = $avg;
         }
 
         return $results;
